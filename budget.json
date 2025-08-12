@@ -1,0 +1,18 @@
+{
+  "threshold": {
+    "budget": {
+      "timings": {
+        "firstPaint": 1000,
+        "firstContentfulPaint": 1500,
+        "largestContentfulPaint": 2500,
+        "firstInputDelay": 100,
+        "cumulativeLayoutShift": 0.1
+      },
+      "pagexray": {
+        "requests": 50,
+        "transferSize": 1000000,
+        "contentSize": 1000000
+      }
+    }
+  }
+}
