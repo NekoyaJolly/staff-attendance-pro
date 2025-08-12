@@ -1,0 +1,24 @@
+# Backup Schedule Crontab Configuration
+# Time Tracking System Automated Backup Jobs
+
+# Environment variables
+PATH=/usr/local/bin:/usr/bin:/bin
+SHELL=/bin/bash
+
+# Daily backup at 2:00 AM
+0 2 * * * /app/timetracking/scripts/backup-system.sh >> /var/log/cron-backup.log 2>&1
+
+# Weekly full backup on Sundays at 3:00 AM
+0 3 * * 0 /app/timetracking/scripts/backup-system.sh weekly >> /var/log/cron-backup-weekly.log 2>&1
+
+# Monthly backup on the 1st of each month at 4:00 AM
+0 4 1 * * /app/timetracking/scripts/backup-system.sh monthly >> /var/log/cron-backup-monthly.log 2>&1
+
+# Backup validation job - runs daily at 6:00 AM
+0 6 * * * /app/timetracking/scripts/backup-validation.sh >> /var/log/cron-validation.log 2>&1
+
+# Cleanup old logs - runs weekly on Mondays at 1:00 AM
+0 1 * * 1 find /var/log -name "*backup*.log" -mtime +30 -delete
+
+# Health check - runs every 6 hours
+0 */6 * * * /app/timetracking/scripts/backup-health-check.sh >> /var/log/cron-health.log 2>&1

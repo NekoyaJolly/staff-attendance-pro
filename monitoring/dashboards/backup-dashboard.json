@@ -1,0 +1,171 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Time Tracking System - Backup Monitoring",
+    "tags": ["backup", "monitoring"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Backup Status Overview",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "backup_last_success_timestamp",
+            "legendFormat": "Last Successful Backup"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "dateTimeFromNow",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 3600
+                },
+                {
+                  "color": "red",
+                  "value": 86400
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Backup Disk Usage",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "(backup_disk_total_bytes - backup_disk_free_bytes) / backup_disk_total_bytes * 100",
+            "legendFormat": "Disk Usage %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 70
+                },
+                {
+                  "color": "red",
+                  "value": 90
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Backup Success Rate",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(backup_successful_total[1h]) * 3600",
+            "legendFormat": "Successful Backups/hour"
+          },
+          {
+            "expr": "rate(backup_failed_total[1h]) * 3600",
+            "legendFormat": "Failed Backups/hour"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "Backup File Sizes",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "backup_database_size_bytes",
+            "legendFormat": "Database Backup Size"
+          },
+          {
+            "expr": "backup_files_size_bytes",
+            "legendFormat": "File Backup Size"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "bytes"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 5,
+        "title": "Backup Validation Results",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "backup_validation_success_rate",
+            "legendFormat": "Validation Success Rate %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        }
+      }
+    ]
+  }
+}

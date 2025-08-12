@@ -1,0 +1,56 @@
+groups:
+  - name: backup_alerts
+    rules:
+      - alert: BackupFailed
+        expr: backup_last_success_timestamp < (time() - 86400)
+        for: 1h
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backup has not succeeded in the last 24 hours"
+          description: "The backup system has not completed successfully for {{ $value }} seconds"
+
+      - alert: BackupDiskSpaceLow
+        expr: backup_disk_free_bytes < 10737418240  # 10GB in bytes
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backup disk space is running low"
+          description: "Free space on backup volume is {{ $value | humanize1024 }}B"
+
+      - alert: BackupValidationFailed
+        expr: backup_validation_success_rate < 90
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backup validation success rate is below 90%"
+          description: "Current backup validation success rate is {{ $value }}%"
+
+      - alert: DatabaseBackupMissing
+        expr: time() - backup_database_last_timestamp > 86400
+        for: 2h
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database backup is missing or outdated"
+          description: "No database backup found in the last 24 hours"
+
+      - alert: FileBackupMissing
+        expr: time() - backup_files_last_timestamp > 86400
+        for: 2h
+        labels:
+          severity: critical
+        annotations:
+          summary: "File backup is missing or outdated"
+          description: "No file backup found in the last 24 hours"
+
+      - alert: BackupServiceDown
+        expr: up{job="backup-system"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backup service is down"
+          description: "The backup monitoring service is not responding"
