@@ -31,7 +31,7 @@ export default function AdminPanel({ user }: AdminPanelProps) {
   const [timeRecords] = useKV<TimeRecord[]>('timeRecords', [])
   const [shifts] = useKV<Shift[]>('shifts', [])
   const [allUsers] = useKV<User[]>('allUsers', [])
-  const [pendingRecords, setPendingRecords] = useKV<TimeRecord[]>('timeRecords', [])
+  const [, setTimeRecords] = useKV<TimeRecord[]>('timeRecords', [])
 
   // 承認待ちの勤怠記録を取得
   const getPendingRecords = () => {
@@ -69,7 +69,7 @@ export default function AdminPanel({ user }: AdminPanelProps) {
   const statistics = getStatistics()
 
   const handleApproval = (recordId: string, approved: boolean) => {
-    setPendingRecords(current => 
+    setTimeRecords(current => 
       current.map(record => 
         record.id === recordId 
           ? { ...record, status: approved ? 'approved' : 'rejected' }
