@@ -38,11 +38,14 @@ function DraggableStaff({ user }: { user: User }) {
   return (
     <div
       ref={drag}
-      className={`bg-card border rounded-md p-2 cursor-move text-sm font-medium transition-opacity ${
+      className={`bg-card border rounded-md p-2 cursor-move text-sm font-medium transition-opacity min-w-[7em] max-w-[7em] text-center ${
         isDragging ? 'opacity-50' : 'opacity-100'
       } hover:bg-secondary`}
+      style={{ width: '7em' }}
     >
-      {user.name}
+      <div className="truncate">
+        {user.name}
+      </div>
     </div>
   )
 }
@@ -324,89 +327,93 @@ function ShiftCreatorContent({ user }: ShiftCreatorProps) {
 
   return (
     <div className="space-y-4">
-      {/* スタッフリスト */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Users size={20} />
-              スタッフ一覧
-            </CardTitle>
-            <Button onClick={updateAllStaffShifts} className="flex items-center gap-2">
-              <FloppyDisk size={16} />
-              更新
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {allUsers.map((staffUser) => (
-              <DraggableStaff key={staffUser.id} user={staffUser} />
-            ))}
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            スタッフをドラッグしてカレンダーにドロップしてください
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* シフトカレンダー */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Users size={20} />
-              シフト作成カレンダー
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => navigateMonth('prev')}>
-                <ChevronLeft size={16} />
-              </Button>
-              <span className="text-sm font-medium min-w-[120px] text-center">
-                {currentDate.getFullYear()}年{currentDate.getMonth() + 1}月
-              </span>
-              <Button variant="outline" size="sm" onClick={() => navigateMonth('next')}>
-                <ChevronRight size={16} />
+      {/* スタッフリスト - 固定ヘッダー */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+        <Card className="border-b-0 rounded-b-none">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Users size={20} />
+                スタッフ一覧
+              </CardTitle>
+              <Button onClick={updateAllStaffShifts} className="flex items-center gap-2">
+                <FloppyDisk size={16} />
+                更新
               </Button>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* 曜日ヘッダー */}
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {['日', '月', '火', '水', '木', '金', '土'].map((day, index) => (
-              <div
-                key={day}
-                className={`text-center text-sm font-medium py-2 ${
-                  index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : 'text-foreground'
-                }`}
-              >
-                {day}
+          </CardHeader>
+          <CardContent className="pt-0 pb-4">
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {allUsers.map((staffUser) => (
+                <DraggableStaff key={staffUser.id} user={staffUser} />
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              スタッフをドラッグしてカレンダーにドロップしてください
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* シフトカレンダー */}
+      <div className="mt-4">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Users size={20} />
+                シフト作成カレンダー
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => navigateMonth('prev')}>
+                  <ChevronLeft size={16} />
+                </Button>
+                <span className="text-sm font-medium min-w-[120px] text-center">
+                  {currentDate.getFullYear()}年{currentDate.getMonth() + 1}月
+                </span>
+                <Button variant="outline" size="sm" onClick={() => navigateMonth('next')}>
+                  <ChevronRight size={16} />
+                </Button>
               </div>
-            ))}
-          </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {/* 曜日ヘッダー */}
+            <div className="grid grid-cols-7 gap-1 mb-2">
+              {['日', '月', '火', '水', '木', '金', '土'].map((day, index) => (
+                <div
+                  key={day}
+                  className={`text-center text-sm font-medium py-2 ${
+                    index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : 'text-foreground'
+                  }`}
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
 
-          {/* カレンダーグリッド */}
-          <div className="grid grid-cols-7 gap-1">
-            {calendar.map((day, index) => {
-              const dayShifts = getShiftsForDate(day.fullDate)
-              const isToday = day.fullDate === today
+            {/* カレンダーグリッド */}
+            <div className="grid grid-cols-7 gap-1">
+              {calendar.map((day, index) => {
+                const dayShifts = getShiftsForDate(day.fullDate)
+                const isToday = day.fullDate === today
 
-              return (
-                <DroppableDay
-                  key={index}
-                  day={day}
-                  dayShifts={dayShifts}
-                  onDrop={handleStaffDrop}
-                  onOpenDialog={openShiftDialog}
-                  getUserName={getUserName}
-                  isToday={isToday}
-                />
-              )
-            })}
-          </div>
-        </CardContent>
-      </Card>
+                return (
+                  <DroppableDay
+                    key={index}
+                    day={day}
+                    dayShifts={dayShifts}
+                    onDrop={handleStaffDrop}
+                    onOpenDialog={openShiftDialog}
+                    getUserName={getUserName}
+                    isToday={isToday}
+                  />
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* シフト登録・編集ダイアログ */}
       <Dialog open={isShiftDialogOpen} onOpenChange={setIsShiftDialogOpen}>
