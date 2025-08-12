@@ -106,14 +106,6 @@ function DroppableDay({ day, dayShifts, onDrop, onOpenDialog, getUserName, isTod
             <div className="font-medium truncate">
               {getUserName(shift.staffId)}
             </div>
-            <div className="truncate">
-              {shift.startTime}-{shift.endTime}
-            </div>
-            {shift.position && (
-              <div className="truncate opacity-75">
-                {shift.position}
-              </div>
-            )}
           </div>
         ))}
       </div>
