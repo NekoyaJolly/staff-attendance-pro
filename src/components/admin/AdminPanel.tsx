@@ -14,10 +14,14 @@ import {
   Clock,
   AlertCircle,
   TrendingUp,
-  TrendingDown
+  TrendingDown,
+  QrCode,
+  TestTube
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { User, TimeRecord, Shift } from '../../App'
+import QRGenerator from '../timecard/QRGenerator'
+import QRTest from '../timecard/QRTest'
 
 interface AdminPanelProps {
   user: User
@@ -139,11 +143,13 @@ export default function AdminPanel({ user }: AdminPanelProps) {
 
       {/* タブコンテンツ */}
       <Tabs defaultValue="approvals" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="approvals">承認</TabsTrigger>
-          <TabsTrigger value="staff">スタッフ</TabsTrigger>
-          <TabsTrigger value="shifts">シフト</TabsTrigger>
-          <TabsTrigger value="export">エクスポート</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
+          <TabsTrigger value="approvals" className="text-xs">承認</TabsTrigger>
+          <TabsTrigger value="staff" className="text-xs">スタッフ</TabsTrigger>
+          <TabsTrigger value="shifts" className="text-xs">シフト</TabsTrigger>
+          <TabsTrigger value="qr" className="text-xs">QRコード</TabsTrigger>
+          <TabsTrigger value="test" className="text-xs">テスト</TabsTrigger>
+          <TabsTrigger value="export" className="text-xs">エクスポート</TabsTrigger>
         </TabsList>
 
         {/* 承認管理 */}
@@ -254,6 +260,50 @@ export default function AdminPanel({ user }: AdminPanelProps) {
                   <div className="text-sm text-muted-foreground">稼働スタッフ</div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* QRコード生成 */}
+        <TabsContent value="qr" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <QrCode size={20} />
+                勤怠用QRコード生成
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-6">
+                <QRGenerator locationId="main" locationName="メインエントランス" />
+                <QRGenerator locationId="staff-room" locationName="スタッフルーム" />
+                <QRGenerator locationId="office" locationName="オフィス" />
+              </div>
+              
+              <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">QRコードの使用方法</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• スタッフは勤怠記録時にQRコードをスキャンします</li>
+                  <li>• QRコードには場所情報が含まれています</li>
+                  <li>• 必要に応じて複数の場所にQRコードを設置してください</li>
+                  <li>• ダウンロードしたQRコードを印刷して掲示してください</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* テスト機能 */}
+        <TabsContent value="test" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TestTube size={20} />
+                QRコード機能テスト
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <QRTest user={user} />
             </CardContent>
           </Card>
         </TabsContent>

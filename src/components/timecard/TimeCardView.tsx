@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Clock, Camera, Edit, CheckCircle, XCircle, AlertCircle } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { User, TimeRecord } from '../../App'
+import QRScanner from './QRScanner'
 
 interface TimeCardViewProps {
   user: User
@@ -19,6 +20,7 @@ export default function TimeCardView({ user }: TimeCardViewProps) {
   const [timeRecords, setTimeRecords] = useKV<TimeRecord[]>('timeRecords', [])
   const [currentStatus, setCurrentStatus] = useState<'out' | 'in'>('out')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
   const [recordType, setRecordType] = useState<'clockIn' | 'clockOut'>('clockIn')
   const [manualTime, setManualTime] = useState('')
   const [note, setNote] = useState('')
@@ -101,9 +103,22 @@ export default function TimeCardView({ user }: TimeCardViewProps) {
   }
 
   const handleQRScan = () => {
-    toast.info('QRコードスキャン機能は開発中です')
-    // 実際の実装では、カメラAPIを使用してQRコードを読み取る
-    handleTimeRecord('auto')
+    setIsQRScannerOpen(true)
+  }
+
+  const handleQRScanSuccess = (qrData: string) => {
+    try {
+      const data = JSON.parse(qrData)
+      if (data.type === 'attendance-qr') {
+        handleTimeRecord('auto')
+        toast.success(`${data.locationName}での勤怠記録を登録しました`)
+      } else {
+        toast.error('無効なQRコードです')
+      }
+    } catch (error) {
+      console.error('QR data parse error:', error)
+      toast.error('QRコードの読み取りに失敗しました')
+    }
   }
 
   const handleManualSubmit = (e: React.FormEvent) => {
@@ -306,6 +321,14 @@ export default function TimeCardView({ user }: TimeCardViewProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* QRスキャナー */}
+      <QRScanner
+        isOpen={isQRScannerOpen}
+        onClose={() => setIsQRScannerOpen(false)}
+        onScanSuccess={handleQRScanSuccess}
+        staffId={user.staffId}
+      />
     </div>
   )
 }
