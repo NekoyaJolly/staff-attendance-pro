@@ -1,0 +1,59 @@
+# Backup Log Rotation Configuration
+# /etc/logrotate.d/backup-logs
+
+/var/log/backup-*.log {
+    daily
+    missingok
+    rotate 90
+    compress
+    delaycompress
+    notifempty
+    create 644 root root
+    postrotate
+        # Send USR1 signal to any backup processes to reopen log files
+        pkill -USR1 -f backup-system || true
+    endscript
+}
+
+/var/log/retention-*.log {
+    weekly
+    missingok
+    rotate 52
+    compress
+    delaycompress
+    notifempty
+    create 644 root root
+}
+
+/var/log/emergency-*.log {
+    daily
+    missingok
+    rotate 365
+    compress
+    delaycompress
+    notifempty
+    create 644 root root
+    mail admin@company.com
+    mailfirst
+}
+
+/var/log/audit-*.log {
+    monthly
+    missingok
+    rotate 84
+    compress
+    delaycompress
+    notifempty
+    create 644 root root
+    # Keep audit logs for 7 years for compliance
+}
+
+/var/log/*-cron.log {
+    weekly
+    missingok
+    rotate 12
+    compress
+    delaycompress
+    notifempty
+    create 644 root root
+}

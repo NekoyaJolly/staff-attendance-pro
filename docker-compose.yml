@@ -93,11 +93,70 @@ services:
       - app-network
     restart: unless-stopped
 
+  # 自動バックアップシステム（保持ポリシー付き）
+  backup:
+    image: postgres:15
+    profiles: ["backup"]
+    depends_on:
+      - database
+    environment:
+      - PGPASSWORD=password
+      - BACKUP_RETENTION_DAYS=30
+      - CRITICAL_RETENTION_YEARS=10
+      - BACKUP_ALERT_EMAIL=admin@company.com
+      - EMERGENCY_ALERT_EMAIL=emergency@company.com
+      - DB_CONTAINER_NAME=timetracking_database
+      - APP_CONTAINER_NAME=timetracking_frontend
+    volumes:
+      - ./scripts:/scripts
+      - backup_data:/var/backups/timetracking
+      - backup_archives:/var/archives/timetracking
+      - backup_reports:/var/reports/backup-compliance
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: >
+      sh -c "
+        echo 'Starting enhanced backup service with retention policies...' &&
+        # Install required packages
+        apt-get update && apt-get install -y cron bc jq mailutils logrotate curl &&
+        # Set up backup retention system
+        chmod +x /scripts/*.sh &&
+        cd /scripts && ./install-backup-retention.sh &&
+        # Start cron daemon
+        service cron start &&
+        echo 'Backup retention system started successfully' &&
+        # Keep container running and monitor
+        while true; do
+          sleep 3600
+          echo 'Backup service health check: $(date)'
+        done
+      "
+    networks:
+      - app-network
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
   prometheus_data:
   grafana_data:
+  backup_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /var/backups/timetracking
+  backup_archives:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /var/archives/timetracking
+  backup_reports:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /var/reports/backup-compliance
 
 networks:
   app-network:
