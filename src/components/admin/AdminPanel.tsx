@@ -20,12 +20,14 @@ import {
   TestTube,
   Check,
   SelectionAll,
-  CalendarCheck
+  CalendarCheck,
+  CalendarDots
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
-import { User, TimeRecord, Shift, CorrectionRequest, VacationRequest } from '../../App'
+import { User, TimeRecord, Shift, CorrectionRequest, VacationRequest, PaidLeaveAlert } from '../../App'
 import QRGenerator from '../timecard/QRGenerator'
 import QRTest from '../timecard/QRTest'
+import PaidLeaveManagement from '../common/PaidLeaveManagement'
 
 interface AdminPanelProps {
   user: User
@@ -37,6 +39,7 @@ export default function AdminPanel({ user }: AdminPanelProps) {
   const [allUsers] = useKV<User[]>('allUsers', [])
   const [correctionRequests, setCorrectionRequests] = useKV<CorrectionRequest[]>('correctionRequests', [])
   const [vacationRequests, setVacationRequests] = useKV<VacationRequest[]>('vacationRequests', [])
+  const [paidLeaveAlerts] = useKV<PaidLeaveAlert[]>('paidLeaveAlerts', [])
   const [selectedRecords, setSelectedRecords] = useState<string[]>([])
   const [selectedCorrections, setSelectedCorrections] = useState<string[]>([])
   const [selectedVacations, setSelectedVacations] = useState<string[]>([])
@@ -328,6 +331,10 @@ export default function AdminPanel({ user }: AdminPanelProps) {
                 <TabsTrigger value="test" className="px-4 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   <TestTube size={16} className="mr-2" />
                   テスト
+                </TabsTrigger>
+                <TabsTrigger value="paidleave" className="px-4 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <CalendarDots size={16} className="mr-2" />
+                  有給管理
                 </TabsTrigger>
                 <TabsTrigger value="export" className="px-4 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   <Download size={16} className="mr-2" />
@@ -844,6 +851,145 @@ export default function AdminPanel({ user }: AdminPanelProps) {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* 有給管理 */}
+        <TabsContent value="paidleave" className="p-6 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarDots size={20} />
+                有給休暇システム管理
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-6">
+                {/* 全体統計 */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-blue-700 mb-1">有効期限警告</p>
+                          <p className="text-2xl font-bold text-blue-800">
+                            {paidLeaveAlerts.filter(alert => 
+                              alert.type === 'expiry_warning' && !alert.dismissed
+                            ).length}
+                          </p>
+                        </div>
+                        <AlertCircle size={24} className="text-blue-600" />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-amber-700 mb-1">低残高警告</p>
+                          <p className="text-2xl font-bold text-amber-800">
+                            {paidLeaveAlerts.filter(alert => 
+                              alert.type === 'low_balance' && !alert.dismissed
+                            ).length}
+                          </p>
+                        </div>
+                        <Clock size={24} className="text-amber-600" />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-green-700 mb-1">付与可能</p>
+                          <p className="text-2xl font-bold text-green-800">
+                            {paidLeaveAlerts.filter(alert => 
+                              alert.type === 'grant_available' && !alert.dismissed
+                            ).length}
+                          </p>
+                        </div>
+                        <CalendarCheck size={24} className="text-green-600" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* 個別スタッフ管理 */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">スタッフ別有給管理</h3>
+                  <div className="grid gap-4">
+                    {allUsers.map((staff) => (
+                      <Card key={staff.id} className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                              <Users size={20} className="text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium">{staff.name}</p>
+                              <p className="text-sm text-muted-foreground">{staff.staffId}</p>
+                            </div>
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              // この部分は実際の実装では新しいページやモーダルを開く
+                              toast.info(`${staff.name}の有給管理画面を開きます`)
+                            }}
+                          >
+                            管理
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+
+                {/* システム操作 */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>システム操作</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Button 
+                        variant="outline" 
+                        className="h-auto p-4 flex flex-col items-center space-y-2"
+                        onClick={() => {
+                          toast.info('月次メンテナンスを実行中...')
+                          // 実際の月次メンテナンス処理をここに実装
+                        }}
+                      >
+                        <TrendingUp size={24} />
+                        <span>月次メンテナンス実行</span>
+                        <span className="text-xs text-muted-foreground">
+                          全スタッフの有給状況をチェック
+                        </span>
+                      </Button>
+
+                      <Button 
+                        variant="outline" 
+                        className="h-auto p-4 flex flex-col items-center space-y-2"
+                        onClick={() => {
+                          toast.info('有給データをエクスポート中...')
+                          // エクスポート処理をここに実装
+                        }}
+                      >
+                        <Download size={24} />
+                        <span>有給データエクスポート</span>
+                        <span className="text-xs text-muted-foreground">
+                          全スタッフの有給情報をダウンロード
+                        </span>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
           </Tabs>
         </CardContent>
       </Card>

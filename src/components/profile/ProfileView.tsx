@@ -10,6 +10,8 @@ import { toast } from 'sonner'
 import { useKV } from '@github/spark/hooks'
 import { User as UserType, PayrollInfo } from '../../App'
 import VacationRequestDialog from './VacationRequestDialog'
+import PaidLeaveAlerts from '../common/PaidLeaveAlerts'
+import PaidLeaveManagement from '../common/PaidLeaveManagement'
 
 interface ProfileViewProps {
   user: UserType
@@ -23,7 +25,11 @@ export default function ProfileView({ user, isAdmin = false }: ProfileViewProps)
     hourlyRate: 1000,
     transportationAllowance: 500,
     remainingPaidLeave: 20,
-    paidLeaveExpiry: '2025-03-31'
+    totalPaidLeave: 20,
+    usedPaidLeave: 0,
+    paidLeaveExpiry: '2025-03-31',
+    lastGrantDate: new Date().toISOString().split('T')[0],
+    workStartDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   })
   const [editedPayroll, setEditedPayroll] = useState(payrollInfo)
 
@@ -63,6 +69,9 @@ export default function ProfileView({ user, isAdmin = false }: ProfileViewProps)
 
   return (
     <div className="space-y-4">
+      {/* 有給アラート表示 */}
+      <PaidLeaveAlerts staffId={user.id} />
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -259,57 +268,22 @@ export default function ProfileView({ user, isAdmin = false }: ProfileViewProps)
         </CardContent>
       </Card>
 
-      {/* 有給休暇情報 */}
+      {/* 有給休暇管理パネル */}
+      <PaidLeaveManagement user={user} isAdmin={isAdmin} />
+
+      {/* 有給申請（従来の簡易版） */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CalendarCheck size={20} />
-            有給休暇
+            有給申請
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <Label htmlFor="remaining-leave">有給残日数</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <CalendarCheck size={16} className="text-muted-foreground" />
-                <Input
-                  id="remaining-leave"
-                  type="number"
-                  value={editedPayroll.remainingPaidLeave}
-                  onChange={(e) => setEditedPayroll(prev => ({ ...prev, remainingPaidLeave: Number(e.target.value) }))}
-                  disabled={!isEditing || !isAdmin}
-                  className={(!isEditing || !isAdmin) ? "bg-muted" : ""}
-                />
-                <span className="text-sm text-muted-foreground">日</span>
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="leave-expiry">有給休暇期限</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <Calendar size={16} className="text-muted-foreground" />
-                <Input
-                  id="leave-expiry"
-                  type="date"
-                  value={editedPayroll.paidLeaveExpiry}
-                  onChange={(e) => setEditedPayroll(prev => ({ ...prev, paidLeaveExpiry: e.target.value }))}
-                  disabled={!isEditing || !isAdmin}
-                  className={(!isEditing || !isAdmin) ? "bg-muted" : ""}
-                />
-              </div>
-            </div>
-          </div>
-
-          <Separator />
-          
-          {/* 有給申請ボタン */}
-          <div className="pt-2">
-            <VacationRequestDialog 
-              staffId={user.id} 
-              remainingDays={payrollInfo.remainingPaidLeave} 
-            />
-          </div>
+        <CardContent>
+          <VacationRequestDialog 
+            staffId={user.id} 
+            remainingDays={payrollInfo.remainingPaidLeave} 
+          />
         </CardContent>
       </Card>
 

@@ -4,6 +4,7 @@ import LoginPage from './components/auth/LoginPage'
 import StaffDashboard from './components/dashboard/StaffDashboard'
 import CreatorDashboard from './components/dashboard/CreatorDashboard'
 import AdminDashboard from './components/dashboard/AdminDashboard'
+import { AutoSchedulerService } from './services/autoSchedulerService'
 import { Toaster } from 'sonner'
 
 export interface User {
@@ -55,6 +56,10 @@ export interface PayrollInfo {
   transportationAllowance: number // 交通費
   remainingPaidLeave: number // 有給残日数
   paidLeaveExpiry: string // 有給休暇期限
+  totalPaidLeave: number // 年間付与日数
+  usedPaidLeave: number // 使用済み日数
+  lastGrantDate: string // 最後の付与日
+  workStartDate: string // 入社日
 }
 
 export interface VacationRequest {
@@ -68,14 +73,62 @@ export interface VacationRequest {
   createdAt: string
 }
 
+export interface PaidLeaveAlert {
+  id: string
+  staffId: string
+  type: 'expiry_warning' | 'low_balance' | 'grant_available'
+  message: string
+  severity: 'info' | 'warning' | 'error'
+  createdAt: string
+  dismissed: boolean
+}
+
 function App() {
   const [currentUser, setCurrentUser] = useKV<User | null>('currentUser', null)
+  const [allUsers] = useKV<User[]>('allUsers', [])
+  const [paidLeaveAlerts, setPaidLeaveAlerts] = useKV<PaidLeaveAlert[]>('paidLeaveAlerts', [])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 500)
     return () => clearTimeout(timer)
   }, [])
+
+  // 有給自動スケジューラーの初期化
+  useEffect(() => {
+    if (currentUser && currentUser.role === 'admin') {
+      // 管理者のみスケジューラーを起動
+      AutoSchedulerService.startAllSchedulers(
+        async () => allUsers,
+        async (staffId) => {
+          // PayrollInfo を取得する実装
+          // 実際の実装では API から取得
+          return {
+            hourlyRate: 1000,
+            transportationAllowance: 500,
+            remainingPaidLeave: 20,
+            totalPaidLeave: 20,
+            usedPaidLeave: 0,
+            paidLeaveExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000 * 2).toISOString().split('T')[0],
+            lastGrantDate: new Date().toISOString().split('T')[0],
+            workStartDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+          }
+        },
+        async (staffId, info) => {
+          // PayrollInfo を更新する実装
+          // 実際の実装では API に送信
+          console.log(`Updated payroll info for ${staffId}:`, info)
+        },
+        async (alert) => {
+          setPaidLeaveAlerts(current => [...current, alert])
+        }
+      )
+
+      return () => {
+        AutoSchedulerService.stopAllSchedulers()
+      }
+    }
+  }, [currentUser, allUsers, setPaidLeaveAlerts])
 
   if (isLoading) {
     return (
