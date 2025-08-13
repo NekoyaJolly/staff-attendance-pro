@@ -254,119 +254,125 @@ export default function AdminPanel({ user }: AdminPanelProps) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
       {/* 統計カード */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="shadow-sm">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">総スタッフ数</p>
-                <p className="text-2xl font-bold">{statistics.totalStaff}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">総スタッフ数</p>
+                <p className="text-lg sm:text-2xl font-bold">{statistics.totalStaff}</p>
               </div>
-              <Users size={24} className="text-primary" />
+              <Users size={20} className="text-primary sm:w-6 sm:h-6" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="shadow-sm">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">アクティブ</p>
-                <p className="text-2xl font-bold">{statistics.activeStaff}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">アクティブ</p>
+                <p className="text-lg sm:text-2xl font-bold">{statistics.activeStaff}</p>
               </div>
-              <TrendingUp size={24} className="text-green-500" />
+              <TrendingUp size={20} className="text-green-500 sm:w-6 sm:h-6" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="shadow-sm">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">承認待ち</p>
-                <p className="text-2xl font-bold text-amber-500">{statistics.pendingApprovals}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">承認待ち</p>
+                <p className="text-lg sm:text-2xl font-bold text-amber-500">{statistics.pendingApprovals}</p>
               </div>
-              <AlertCircle size={24} className="text-amber-500" />
+              <AlertCircle size={20} className="text-amber-500 sm:w-6 sm:h-6" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="shadow-sm">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">今月シフト</p>
-                <p className="text-2xl font-bold">{statistics.totalShifts}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">今月シフト</p>
+                <p className="text-lg sm:text-2xl font-bold">{statistics.totalShifts}</p>
               </div>
-              <Calendar size={24} className="text-blue-500" />
+              <Calendar size={20} className="text-blue-500 sm:w-6 sm:h-6" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* メインタブ - より目立つように配置 */}
+      {/* メインタブ - モバイル対応 */}
       <Card className="shadow-md border-2 border-primary/10">
         <CardContent className="p-0">
           <Tabs defaultValue="approvals" className="w-full">
-            <div className="bg-gradient-to-r from-primary/5 to-accent/5 p-4 border-b">
-              <TabsList className="h-12 bg-background/80 backdrop-blur-sm shadow-sm">
-                <TabsTrigger value="approvals" className="px-4 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <AlertCircle size={16} className="mr-2" />
-                  承認管理
+            <div className="bg-gradient-to-r from-primary/5 to-accent/5 p-2 sm:p-4 border-b">
+              <TabsList className="h-10 sm:h-12 bg-background/80 backdrop-blur-sm shadow-sm w-full sm:w-auto overflow-x-auto">
+                <TabsTrigger value="approvals" className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap">
+                  <AlertCircle size={14} className="mr-1 sm:mr-2 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">承認管理</span>
+                  <span className="sm:hidden">承認</span>
                 </TabsTrigger>
-                <TabsTrigger value="staff" className="px-4 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <Users size={16} className="mr-2" />
-                  スタッフ
+                <TabsTrigger value="staff" className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap">
+                  <Users size={14} className="mr-1 sm:mr-2 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">スタッフ</span>
+                  <span className="sm:hidden">Staff</span>
                 </TabsTrigger>
-                <TabsTrigger value="shifts" className="px-4 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <Calendar size={16} className="mr-2" />
-                  シフト
+                <TabsTrigger value="shifts" className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap">
+                  <Calendar size={14} className="mr-1 sm:mr-2 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">シフト</span>
+                  <span className="sm:hidden">Shift</span>
                 </TabsTrigger>
-                <TabsTrigger value="qr" className="px-4 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <QrCode size={16} className="mr-2" />
+                <TabsTrigger value="qr" className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap">
+                  <QrCode size={14} className="mr-1 sm:mr-2 sm:w-4 sm:h-4" />
                   QR
                 </TabsTrigger>
-                <TabsTrigger value="test" className="px-4 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <TestTube size={16} className="mr-2" />
-                  テスト
+                <TabsTrigger value="test" className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap">
+                  <TestTube size={14} className="mr-1 sm:mr-2 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">テスト</span>
+                  <span className="sm:hidden">Test</span>
                 </TabsTrigger>
-                <TabsTrigger value="paidleave" className="px-4 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <CalendarDots size={16} className="mr-2" />
-                  有給管理
+                <TabsTrigger value="paidleave" className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap">
+                  <CalendarDots size={14} className="mr-1 sm:mr-2 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">有給管理</span>
+                  <span className="sm:hidden">有給</span>
                 </TabsTrigger>
-                <TabsTrigger value="export" className="px-4 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <Download size={16} className="mr-2" />
-                  データ
+                <TabsTrigger value="export" className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap">
+                  <Download size={14} className="mr-1 sm:mr-2 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">データ</span>
+                  <span className="sm:hidden">Data</span>
                 </TabsTrigger>
               </TabsList>
             </div>
 
         {/* 承認管理 */}
-        <TabsContent value="approvals" className="p-6 space-y-6">
+        <TabsContent value="approvals" className="p-3 sm:p-6 space-y-4 sm:space-y-6">
           {/* 勤怠記録の承認 */}
           <Card>
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Clock size={20} />
+            <CardHeader className="pb-3 sm:pb-4">
+              <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Clock size={18} className="sm:w-5 sm:h-5" />
                   承認待ちの勤怠記録
                   {getPendingRecords().length > 0 && (
-                    <Badge variant="secondary" className="ml-2">
+                    <Badge variant="secondary" className="ml-2 text-xs">
                       {getPendingRecords().length}
                     </Badge>
                   )}
                 </CardTitle>
                 {getPendingRecords().length > 0 && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:items-center sm:gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={handleSelectAll}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 text-xs sm:text-sm"
                     >
-                      <SelectionAll size={16} />
+                      <SelectionAll size={14} className="sm:w-4 sm:h-4" />
                       {selectedRecords.length === getPendingRecords().length ? '全選択解除' : '全選択'}
                     </Button>
                     {selectedRecords.length > 0 && (
@@ -374,18 +380,18 @@ export default function AdminPanel({ user }: AdminPanelProps) {
                         <Button
                           size="sm"
                           onClick={() => handleBulkApproval(true)}
-                          className="flex items-center gap-2"
+                          className="flex items-center gap-2 text-xs sm:text-sm"
                         >
-                          <Check size={16} />
+                          <Check size={14} className="sm:w-4 sm:h-4" />
                           一括承認 ({selectedRecords.length})
                         </Button>
                         <Button
                           size="sm"
                           variant="destructive"
                           onClick={() => handleBulkApproval(false)}
-                          className="flex items-center gap-2"
+                          className="flex items-center gap-2 text-xs sm:text-sm"
                         >
-                          <XCircle size={16} />
+                          <XCircle size={14} className="sm:w-4 sm:h-4" />
                           一括却下 ({selectedRecords.length})
                         </Button>
                       </div>
@@ -394,51 +400,56 @@ export default function AdminPanel({ user }: AdminPanelProps) {
                 )}
               </div>
             </CardHeader>
-            <CardContent className="max-h-96 overflow-y-auto">
+            <CardContent className="max-h-80 sm:max-h-96 overflow-y-auto">
               <div className="space-y-3">
                 {getPendingRecords().length === 0 ? (
-                  <div className="text-center py-8">
-                    <Clock size={48} className="mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">承認待ちの勤怠記録はありません</p>
+                  <div className="text-center py-6 sm:py-8">
+                    <Clock size={40} className="mx-auto text-muted-foreground mb-3 sm:w-12 sm:h-12 sm:mb-4" />
+                    <p className="text-muted-foreground text-sm sm:text-base">承認待ちの勤怠記録はありません</p>
                   </div>
                 ) : (
                   getPendingRecords().map((record) => (
-                    <div key={record.id} className="flex items-center gap-3 p-4 border rounded-lg bg-card hover:bg-muted/30 transition-colors">
+                    <div key={record.id} className="flex items-start gap-3 p-3 sm:p-4 border rounded-lg bg-card hover:bg-muted/30 transition-colors">
                       <Checkbox
                         checked={selectedRecords.includes(record.id)}
                         onCheckedChange={() => handleRecordSelect(record.id)}
+                        className="mt-1"
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-foreground">{getUserName(record.staffId)}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {new Date(record.date).toLocaleDateString('ja-JP')}
-                          {record.clockIn && ` • 出勤: ${record.clockIn}`}
-                          {record.clockOut && ` • 退勤: ${record.clockOut}`}
+                        <div className="font-medium text-foreground text-sm sm:text-base">{getUserName(record.staffId)}</div>
+                        <div className="text-xs sm:text-sm text-muted-foreground space-y-1">
+                          <div>{new Date(record.date).toLocaleDateString('ja-JP')}</div>
+                          <div className="flex flex-col sm:flex-row sm:gap-4">
+                            {record.clockIn && <span>出勤: {record.clockIn}</span>}
+                            {record.clockOut && <span>退勤: {record.clockOut}</span>}
+                          </div>
                         </div>
                         {record.note && (
-                          <div className="text-xs text-muted-foreground mt-1 bg-muted/50 px-2 py-1 rounded">
+                          <div className="text-xs text-muted-foreground mt-2 bg-muted/50 px-2 py-1 rounded">
                             備考: {record.note}
                           </div>
                         )}
-                        <Badge variant={record.type === 'manual' ? 'destructive' : 'default'} className="mt-2">
+                        <Badge variant={record.type === 'manual' ? 'destructive' : 'default'} className="mt-2 text-xs">
                           {record.type === 'manual' ? '手動入力' : '自動記録'}
                         </Badge>
                       </div>
-                      <div className="flex gap-2 shrink-0">
+                      <div className="flex flex-col sm:flex-row gap-2 shrink-0">
                         <Button
                           size="sm"
                           onClick={() => handleApproval(record.id, true)}
-                          className="h-8 px-3"
+                          className="h-8 px-2 sm:px-3"
                         >
                           <CheckCircle size={14} />
+                          <span className="hidden sm:inline ml-1">承認</span>
                         </Button>
                         <Button
                           size="sm"
                           variant="destructive"
                           onClick={() => handleApproval(record.id, false)}
-                          className="h-8 px-3"
+                          className="h-8 px-2 sm:px-3"
                         >
                           <XCircle size={14} />
+                          <span className="hidden sm:inline ml-1">却下</span>
                         </Button>
                       </div>
                     </div>
@@ -450,26 +461,26 @@ export default function AdminPanel({ user }: AdminPanelProps) {
 
           {/* 修正リクエストの承認 */}
           <Card>
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <AlertCircle size={20} />
+            <CardHeader className="pb-3 sm:pb-4">
+              <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <AlertCircle size={18} className="sm:w-5 sm:h-5" />
                   打刻修正の承認待ち
                   {getPendingCorrections().length > 0 && (
-                    <Badge variant="secondary" className="ml-2">
+                    <Badge variant="secondary" className="ml-2 text-xs">
                       {getPendingCorrections().length}
                     </Badge>
                   )}
                 </CardTitle>
                 {getPendingCorrections().length > 0 && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:items-center sm:gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={handleSelectAllCorrections}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 text-xs sm:text-sm"
                     >
-                      <SelectionAll size={16} />
+                      <SelectionAll size={14} className="sm:w-4 sm:h-4" />
                       {selectedCorrections.length === getPendingCorrections().length ? '全選択解除' : '全選択'}
                     </Button>
                     {selectedCorrections.length > 0 && (
@@ -477,18 +488,18 @@ export default function AdminPanel({ user }: AdminPanelProps) {
                         <Button
                           size="sm"
                           onClick={() => handleBulkCorrectionApproval(true)}
-                          className="flex items-center gap-2"
+                          className="flex items-center gap-2 text-xs sm:text-sm"
                         >
-                          <Check size={16} />
+                          <Check size={14} className="sm:w-4 sm:h-4" />
                           一括承認 ({selectedCorrections.length})
                         </Button>
                         <Button
                           size="sm"
                           variant="destructive"
                           onClick={() => handleBulkCorrectionApproval(false)}
-                          className="flex items-center gap-2"
+                          className="flex items-center gap-2 text-xs sm:text-sm"
                         >
-                          <XCircle size={16} />
+                          <XCircle size={14} className="sm:w-4 sm:h-4" />
                           一括却下 ({selectedCorrections.length})
                         </Button>
                       </div>

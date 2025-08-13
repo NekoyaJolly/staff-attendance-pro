@@ -32,16 +32,18 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
       <header className="bg-card/80 backdrop-blur-sm border-b border-border/50 sticky top-0 z-40 shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                管理者ダッシュボード
-              </h1>
-              <p className="text-sm text-muted-foreground">{user.name}さん • ID: {user.staffId}</p>
+        <div className="container mx-auto px-4 py-3 sm:py-4">
+          <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <div>
+                <h1 className="text-lg sm:text-xl font-bold text-foreground">
+                  管理者ダッシュボード
+                </h1>
+                <p className="text-xs sm:text-sm text-muted-foreground">{user.name}さん • ID: {user.staffId}</p>
+              </div>
             </div>
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               <div className="text-sm font-medium text-foreground">
                 {new Date().toLocaleDateString('ja-JP', {
                   year: 'numeric',

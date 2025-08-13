@@ -218,21 +218,21 @@ export default function TimeCardView({ user }: TimeCardViewProps) {
     <div className="space-y-4">
       {/* 出退勤ボタン */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock size={20} />
+        <CardHeader className="pb-3 sm:pb-4">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Clock size={18} className="sm:w-5 sm:h-5" />
             タイムカード
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="text-center">
-            <div className="text-2xl font-bold">
+            <div className="text-xl sm:text-2xl font-bold">
               {new Date().toLocaleTimeString('ja-JP', {
                 hour: '2-digit',
                 minute: '2-digit'
               })}
             </div>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-xs sm:text-sm text-muted-foreground">
               {new Date().toLocaleDateString('ja-JP', {
                 year: 'numeric',
                 month: 'long',
@@ -245,7 +245,7 @@ export default function TimeCardView({ user }: TimeCardViewProps) {
           <div className="grid grid-cols-2 gap-3">
             <Button
               size="lg"
-              className="h-16"
+              className="h-12 sm:h-16 text-sm sm:text-base"
               onClick={() => openRecordDialog('clockIn')}
               disabled={currentStatus === 'in'}
             >
@@ -254,7 +254,7 @@ export default function TimeCardView({ user }: TimeCardViewProps) {
             <Button
               size="lg"
               variant="outline"
-              className="h-16"
+              className="h-12 sm:h-16 text-sm sm:text-base"
               onClick={() => openRecordDialog('clockOut')}
               disabled={currentStatus === 'out'}
             >
@@ -263,7 +263,7 @@ export default function TimeCardView({ user }: TimeCardViewProps) {
           </div>
 
           <div className="text-center">
-            <Badge variant={currentStatus === 'in' ? 'default' : 'secondary'}>
+            <Badge variant={currentStatus === 'in' ? 'default' : 'secondary'} className="text-xs sm:text-sm">
               {currentStatus === 'in' ? '勤務中' : '退勤済み'}
             </Badge>
           </div>
@@ -272,13 +272,13 @@ export default function TimeCardView({ user }: TimeCardViewProps) {
 
       {/* 今月の勤怠記録 */}
       <Card>
-        <CardHeader>
-          <CardTitle>今月の勤怠記録</CardTitle>
+        <CardHeader className="pb-3 sm:pb-4">
+          <CardTitle className="text-base sm:text-lg">今月の勤怠記録</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {monthlyRecords.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">
+              <p className="text-muted-foreground text-center py-4 text-sm">
                 まだ勤怠記録がありません
               </p>
             ) : (
@@ -290,30 +290,32 @@ export default function TimeCardView({ user }: TimeCardViewProps) {
                 
                 return (
                   <div key={record.id} className="p-3 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="font-medium">
+                    <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm sm:text-base">
                           {new Date(record.date).toLocaleDateString('ja-JP', {
                             month: 'numeric',
                             day: 'numeric',
                             weekday: 'short'
                           })}
                         </div>
-                        <div className="text-sm text-muted-foreground flex items-center gap-4">
-                          <span>
-                            {record.clockIn && `出勤: ${record.clockIn}`}
-                            {record.clockOut && ` / 退勤: ${record.clockOut}`}
-                          </span>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => openCorrectionDialog(record)}
-                            disabled={!!pendingCorrection}
-                            className="h-6 px-2 text-xs"
-                          >
-                            <Pencil size={12} className="mr-1" />
-                            {pendingCorrection ? '申請中' : '打刻修正'}
-                          </Button>
+                        <div className="text-xs sm:text-sm text-muted-foreground">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
+                            <div className="flex flex-col sm:flex-row sm:gap-2">
+                              {record.clockIn && <span>出勤: {record.clockIn}</span>}
+                              {record.clockOut && <span>退勤: {record.clockOut}</span>}
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => openCorrectionDialog(record)}
+                              disabled={!!pendingCorrection}
+                              className="h-6 px-2 text-xs self-start sm:self-auto mt-1 sm:mt-0"
+                            >
+                              <Pencil size={12} className="mr-1" />
+                              {pendingCorrection ? '申請中' : '打刻修正'}
+                            </Button>
+                          </div>
                         </div>
                         {record.note && (
                           <div className="text-xs text-muted-foreground mt-1">
@@ -326,9 +328,9 @@ export default function TimeCardView({ user }: TimeCardViewProps) {
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 self-start sm:self-auto">
                         {getStatusIcon(record.status)}
-                        <Badge variant={record.type === 'manual' ? 'outline' : 'secondary'}>
+                        <Badge variant={record.type === 'manual' ? 'outline' : 'secondary'} className="text-xs">
                           {record.type === 'manual' ? '手動' : '自動'}
                         </Badge>
                       </div>

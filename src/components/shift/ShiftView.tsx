@@ -131,53 +131,59 @@ export default function ShiftView({ user }: ShiftViewProps) {
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
+        <CardHeader className="pb-4">
+          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <Calendar size={20} />
               シフト確認
             </CardTitle>
-            <div className="flex items-center gap-2">
+            
+            {/* モバイル対応のコントロール */}
+            <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:items-center sm:gap-2">
               {/* ビューモード切替ボタン */}
               <div className="flex border rounded-md">
                 <Button
                   variant={viewMode === 'monthly' ? 'default' : 'ghost'}
                   size="sm"
-                  className="rounded-r-none"
+                  className="rounded-r-none flex-1 sm:flex-none"
                   onClick={() => setViewMode('monthly')}
                 >
-                  <CalendarBlank size={16} />
-                  月
+                  <CalendarBlank size={16} className="sm:mr-1" />
+                  <span className="hidden sm:inline">月</span>
                 </Button>
                 <Button
                   variant={viewMode === 'weekly' ? 'default' : 'ghost'}
                   size="sm"
-                  className="rounded-l-none"
+                  className="rounded-l-none flex-1 sm:flex-none"
                   onClick={() => setViewMode('weekly')}
                 >
-                  <List size={16} />
-                  週
+                  <List size={16} className="sm:mr-1" />
+                  <span className="hidden sm:inline">週</span>
                 </Button>
               </div>
-              <Button variant="outline" size="sm" onClick={() => navigateMonth('prev')}>
-                <ChevronLeft size={16} />
-              </Button>
-              <span className="text-sm font-medium min-w-[160px] text-center">
-                {getDateRangeLabel()}
-              </span>
-              <Button variant="outline" size="sm" onClick={() => navigateMonth('next')}>
-                <ChevronRight size={16} />
-              </Button>
+              
+              {/* ナビゲーション */}
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => navigateMonth('prev')}>
+                  <ChevronLeft size={16} />
+                </Button>
+                <span className="text-sm font-medium text-center flex-1 sm:min-w-[160px]">
+                  {getDateRangeLabel()}
+                </span>
+                <Button variant="outline" size="sm" onClick={() => navigateMonth('next')}>
+                  <ChevronRight size={16} />
+                </Button>
+              </div>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4">
           {/* 曜日ヘッダー */}
-          <div className={`grid ${viewMode === 'monthly' ? 'grid-cols-7' : 'grid-cols-7'} gap-1 mb-2`}>
+          <div className={`grid grid-cols-7 gap-1 mb-2`}>
             {['日', '月', '火', '水', '木', '金', '土'].map((day, index) => (
               <div
                 key={day}
-                className={`text-center text-sm font-medium py-2 ${
+                className={`text-center text-xs sm:text-sm font-medium py-2 ${
                   index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : 'text-foreground'
                 }`}
               >
@@ -187,7 +193,7 @@ export default function ShiftView({ user }: ShiftViewProps) {
           </div>
 
           {/* カレンダーグリッド */}
-          <div className={`grid ${viewMode === 'monthly' ? 'grid-cols-7' : 'grid-cols-7'} gap-1`}>
+          <div className={`grid grid-cols-7 gap-1`}>
             {calendar.map((day, index) => {
               const shift = getShiftForDate(day.fullDate)
               const isToday = day.fullDate === today
@@ -197,21 +203,21 @@ export default function ShiftView({ user }: ShiftViewProps) {
                 <Button
                   key={index}
                   variant="ghost"
-                  className={`${viewMode === 'monthly' ? 'h-12' : 'h-20'} p-1 flex flex-col items-center justify-center relative ${
+                  className={`${viewMode === 'monthly' ? 'h-10 sm:h-12' : 'h-16 sm:h-20'} p-1 flex flex-col items-center justify-center relative text-xs sm:text-sm ${
                     !day.isCurrentMonth ? 'text-muted-foreground opacity-50' : ''
                   } ${isToday ? 'ring-2 ring-primary' : ''} ${
                     hasShift ? 'bg-primary/10' : ''
                   }`}
                   onClick={() => setSelectedDate(day.fullDate)}
                 >
-                  <span className="text-sm font-medium">{day.date}</span>
+                  <span className="font-medium">{day.date}</span>
                   {hasShift && viewMode === 'weekly' && (
-                    <div className="text-xs mt-1 text-center">
-                      <div className="text-primary font-medium">
+                    <div className="text-xs mt-1 text-center w-full">
+                      <div className="text-primary font-medium text-[10px] sm:text-xs">
                         {shift.startTime}-{shift.endTime}
                       </div>
                       {shift.position && (
-                        <div className="text-muted-foreground truncate max-w-full">
+                        <div className="text-muted-foreground truncate text-[9px] sm:text-xs max-w-full">
                           {shift.position}
                         </div>
                       )}
@@ -230,8 +236,8 @@ export default function ShiftView({ user }: ShiftViewProps) {
       {/* 選択された日のシフト詳細 */}
       {selectedDate && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base sm:text-lg">
               {new Date(selectedDate).toLocaleDateString('ja-JP', {
                 year: 'numeric',
                 month: 'long',
@@ -245,24 +251,24 @@ export default function ShiftView({ user }: ShiftViewProps) {
               const shift = getShiftForDate(selectedDate)
               if (shift) {
                 return (
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">勤務時間:</span>
-                      <span className="font-medium">
+                  <div className="space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                      <span className="text-muted-foreground text-sm">勤務時間:</span>
+                      <span className="font-medium text-sm sm:text-base">
                         {shift.startTime} - {shift.endTime}
                       </span>
                     </div>
                     {shift.position && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">ポジション:</span>
-                        <span className="font-medium">{shift.position}</span>
+                      <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                        <span className="text-muted-foreground text-sm">ポジション:</span>
+                        <span className="font-medium text-sm sm:text-base">{shift.position}</span>
                       </div>
                     )}
                   </div>
                 )
               } else {
                 return (
-                  <p className="text-muted-foreground text-center py-4">
+                  <p className="text-muted-foreground text-center py-4 text-sm">
                     この日はシフトが登録されていません
                   </p>
                 )

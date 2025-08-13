@@ -74,32 +74,33 @@ export default function ProfileView({ user, isAdmin = false }: ProfileViewProps)
       <PaidLeaveAlerts staffId={user.id} />
 
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <User size={20} />
+        <CardHeader className="pb-3 sm:pb-4">
+          <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <User size={18} className="sm:w-5 sm:h-5" />
               プロフィール
             </CardTitle>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsEditing(!isEditing)}
+              className="text-xs sm:text-sm"
             >
-              <Edit size={16} className="mr-1" />
+              <Edit size={14} className="mr-1 sm:w-4 sm:h-4" />
               {isEditing ? 'キャンセル' : '編集'}
             </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* 基本情報 */}
-          <div className="flex items-center justify-center mb-6">
-            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
-              <User size={40} className="text-primary" />
+          <div className="flex items-center justify-center mb-4 sm:mb-6">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-primary/10 rounded-full flex items-center justify-center">
+              <User size={32} className="text-primary sm:w-10 sm:h-10" />
             </div>
           </div>
 
-          <div className="text-center mb-6">
-            <h2 className="text-xl font-semibold">{user.name}</h2>
+          <div className="text-center mb-4 sm:mb-6">
+            <h2 className="text-lg sm:text-xl font-semibold">{user.name}</h2>
             <div className="mt-2">
               {getRoleBadge(user.role)}
             </div>
@@ -109,41 +110,41 @@ export default function ProfileView({ user, isAdmin = false }: ProfileViewProps)
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4">
               <div>
-                <Label htmlFor="staff-id">スタッフID</Label>
+                <Label htmlFor="staff-id" className="text-sm">スタッフID</Label>
                 <div className="flex items-center gap-2 mt-1">
                   <Input
                     id="staff-id"
                     value={user.staffId}
                     disabled
-                    className="bg-muted"
+                    className="bg-muted text-sm"
                   />
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="name">氏名</Label>
+                <Label htmlFor="name" className="text-sm">氏名</Label>
                 <div className="flex items-center gap-2 mt-1">
                   <Input
                     id="name"
                     value={editedUser.name}
                     onChange={(e) => setEditedUser(prev => ({ ...prev, name: e.target.value }))}
                     disabled={!isEditing}
-                    className={!isEditing ? "bg-muted" : ""}
+                    className={`text-sm ${!isEditing ? "bg-muted" : ""}`}
                   />
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="email">メールアドレス</Label>
+                <Label htmlFor="email" className="text-sm">メールアドレス</Label>
                 <div className="flex items-center gap-2 mt-1">
-                  <Mail size={16} className="text-muted-foreground" />
+                  <Mail size={14} className="text-muted-foreground sm:w-4 sm:h-4" />
                   <Input
                     id="email"
                     type="email"
                     value={editedUser.email}
                     onChange={(e) => setEditedUser(prev => ({ ...prev, email: e.target.value }))}
                     disabled={!isEditing}
-                    className={!isEditing ? "bg-muted" : ""}
+                    className={`text-sm ${!isEditing ? "bg-muted" : ""}`}
                   />
                 </div>
               </div>

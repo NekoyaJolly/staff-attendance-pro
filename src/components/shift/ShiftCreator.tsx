@@ -72,14 +72,14 @@ function DroppableDay({ day, dayShifts, onDrop, onOpenDialog, getUserName, isTod
   return (
     <div
       ref={drop}
-      className={`min-h-[100px] p-1 border rounded transition-colors ${
+      className={`min-h-[80px] sm:min-h-[100px] p-1 border rounded transition-colors ${
         !day.isCurrentMonth ? 'bg-muted/50' : 'bg-card'
       } ${isToday ? 'ring-2 ring-primary' : ''} ${
         isOver ? 'bg-primary/10 border-primary' : ''
       }`}
     >
       <div className="flex items-center justify-between mb-1">
-        <span className={`text-sm font-medium ${
+        <span className={`text-xs sm:text-sm font-medium ${
           !day.isCurrentMonth ? 'text-muted-foreground' : ''
         }`}>
           {day.date}
@@ -88,10 +88,10 @@ function DroppableDay({ day, dayShifts, onDrop, onOpenDialog, getUserName, isTod
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 w-6 p-0"
+            className="h-5 w-5 sm:h-6 sm:w-6 p-0"
             onClick={() => onOpenDialog(day.fullDate)}
           >
-            <Plus size={12} />
+            <Plus size={10} className="sm:w-3 sm:h-3" />
           </Button>
         )}
       </div>
@@ -100,7 +100,7 @@ function DroppableDay({ day, dayShifts, onDrop, onOpenDialog, getUserName, isTod
         {dayShifts.map((shift) => (
           <div
             key={shift.id}
-            className="bg-primary/10 text-primary text-xs p-1 rounded cursor-pointer hover:bg-primary/20"
+            className="bg-primary/10 text-primary text-[10px] sm:text-xs p-1 rounded cursor-pointer hover:bg-primary/20"
             onClick={() => onOpenDialog(day.fullDate, shift)}
           >
             <div className="font-medium truncate">
@@ -110,7 +110,7 @@ function DroppableDay({ day, dayShifts, onDrop, onOpenDialog, getUserName, isTod
         ))}
       </div>
       {isOver && (
-        <div className="text-xs text-primary mt-1 text-center">
+        <div className="text-[10px] sm:text-xs text-primary mt-1 text-center">
           ここにドロップ
         </div>
       )}
@@ -323,13 +323,13 @@ function ShiftCreatorContent({ user }: ShiftCreatorProps) {
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <Card className="border-b-0 rounded-b-none">
           <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Users size={20} />
+            <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Users size={18} className="sm:w-5 sm:h-5" />
                 スタッフ一覧
               </CardTitle>
-              <Button onClick={updateAllStaffShifts} className="flex items-center gap-2">
-                <FloppyDisk size={16} />
+              <Button onClick={updateAllStaffShifts} className="flex items-center gap-2 text-xs sm:text-sm" size="sm">
+                <FloppyDisk size={14} className="sm:w-4 sm:h-4" />
                 更新
               </Button>
             </div>
@@ -350,10 +350,10 @@ function ShiftCreatorContent({ user }: ShiftCreatorProps) {
       {/* シフトカレンダー */}
       <div className="mt-4">
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Users size={20} />
+          <CardHeader className="pb-3 sm:pb-4">
+            <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Users size={18} className="sm:w-5 sm:h-5" />
                 シフト作成カレンダー
               </CardTitle>
               <div className="flex items-center gap-2">
@@ -369,13 +369,13 @@ function ShiftCreatorContent({ user }: ShiftCreatorProps) {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-2 sm:p-6">
             {/* 曜日ヘッダー */}
             <div className="grid grid-cols-7 gap-1 mb-2">
               {['日', '月', '火', '水', '木', '金', '土'].map((day, index) => (
                 <div
                   key={day}
-                  className={`text-center text-sm font-medium py-2 ${
+                  className={`text-center text-xs sm:text-sm font-medium py-2 ${
                     index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : 'text-foreground'
                   }`}
                 >
