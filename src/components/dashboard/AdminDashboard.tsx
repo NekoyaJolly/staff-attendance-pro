@@ -12,7 +12,7 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
-  const [activeTab, setActiveTab] = useState('admin')
+  const [activeTab, setActiveTab] = useState('timecard') // デフォルトを勤怠ページに変更
 
   const renderContent = () => {
     switch (activeTab) {
@@ -25,31 +25,46 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
       case 'profile':
         return <ProfileView user={user} />
       default:
-        return <AdminPanel user={user} />
+        return <TimeCardView user={user} />
     }
   }
 
   return (
-    <div className="min-h-screen bg-background pb-16">
-      <header className="bg-card border-b border-border px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-semibold text-foreground">管理者ダッシュボード</h1>
-            <p className="text-sm text-muted-foreground">{user.name}さん</p>
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {new Date().toLocaleDateString('ja-JP', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              weekday: 'short'
-            })}
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+      <header className="bg-card/80 backdrop-blur-sm border-b border-border/50 sticky top-0 z-40 shadow-sm">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                管理者ダッシュボード
+              </h1>
+              <p className="text-sm text-muted-foreground">{user.name}さん • ID: {user.staffId}</p>
+            </div>
+            <div className="text-right">
+              <div className="text-sm font-medium text-foreground">
+                {new Date().toLocaleDateString('ja-JP', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {new Date().toLocaleDateString('ja-JP', { weekday: 'long' })} • 
+                {new Date().toLocaleTimeString('ja-JP', { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                })}
+              </div>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="p-4">
-        {renderContent()}
+      <main className="container mx-auto p-4 pb-20 lg:pb-4">
+        <div className="max-w-7xl mx-auto">
+          {renderContent()}
+        </div>
       </main>
 
       <BottomNavigation

@@ -1,4 +1,4 @@
-import { Calendar, Clock, User, LogOut } from '@phosphor-icons/react'
+import { Calendar, Clock, User, LogOut, Shield, Plus } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 
 interface BottomNavigationProps {
@@ -17,9 +17,9 @@ export default function BottomNavigation({ activeTab, onTabChange, userRole, onL
 
   // 管理者・作成者には追加のタブを表示
   if (userRole === 'admin') {
-    tabs.splice(2, 0, { id: 'admin', label: '管理', icon: LogOut })
+    tabs.splice(2, 0, { id: 'admin', label: '管理', icon: Shield })
   } else if (userRole === 'creator') {
-    tabs.splice(2, 0, { id: 'create', label: '作成', icon: LogOut })
+    tabs.splice(2, 0, { id: 'create', label: '作成', icon: Plus })
   }
 
   return (
