@@ -1,279 +1,364 @@
-import * as XLSX from 'xlsx'
-import { saveAs } from 'file-saver'
-import { User, TimeRecord, Shift } from '../App'
+import { User, TimeRecord, Shift, PayrollInfo } from '../App'
 
 export interface ExportData {
   timeRecords: TimeRecord[]
   shifts: Shift[]
   users: User[]
+  payrollInfo?: PayrollInfo[]
 }
 
-// エクスポート用のユーティリティクラス
+export interface ExportOptions {
+  format: 'excel' | 'csv'
+  dataType: 'timeRecords' | 'shifts' | 'users' | 'all'
+  startDate?: string
+  endDate?: string
+  staffIds?: string[]
+}
+
 export class ExportService {
-  
-  // 勤怠データをエクスポート
-  static async exportTimeRecords(
+  // CSVエクスポート機能
+  static exportToCsv(data: any[], filename: string): void {
+    if (data.length === 0) {
+      throw new Error('エクスポートするデータがありません')
+    }
+
+    // ヘッダー行を作成
+    const headers = Object.keys(data[0])
+    const csvContent = [
+      headers.join(','),
+      ...data.map(row => 
+        headers.map(header => {
+          const value = row[header]
+          // カンマやダブルクォートが含まれる場合はエスケープ
+          if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
+            return `"${value.replace(/"/g, '""')}"`
+          }
+          return value
+        }).join(',')
+      )
+    ].join('\n')
+
+    // BOM付きUTF-8でダウンロード（Excelでの文字化け防止）
+    const bom = '\uFEFF'
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    
+    link.setAttribute('href', url)
+    link.setAttribute('download', `${filename}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  // 勤怠データのフォーマット
+  static formatTimeRecordsForExport(
     timeRecords: TimeRecord[], 
-    users: User[], 
-    format: 'excel' | 'csv',
-    dateRange?: { start: string; end: string }
-  ) {
-    // 日付フィルター
+    users: User[],
+    startDate?: string,
+    endDate?: string
+  ): any[] {
+    const getUserName = (staffId: string) => {
+      const user = users.find(u => u.id === staffId || u.staffId === staffId)
+      return user?.name || 'Unknown User'
+    }
+
     let filteredRecords = timeRecords
-    if (dateRange) {
-      filteredRecords = timeRecords.filter(record => 
-        record.date >= dateRange.start && record.date <= dateRange.end
-      )
+
+    // 日付フィルタリング
+    if (startDate || endDate) {
+      filteredRecords = timeRecords.filter(record => {
+        const recordDate = new Date(record.date)
+        if (startDate && recordDate < new Date(startDate)) return false
+        if (endDate && recordDate > new Date(endDate)) return false
+        return true
+      })
     }
 
-    // データを整形
-    const exportData = filteredRecords.map(record => {
-      const user = users.find(u => u.staffId === record.staffId)
-      return {
-        'スタッフID': record.staffId,
-        'スタッフ名': user?.name || '不明',
-        '日付': new Date(record.date).toLocaleDateString('ja-JP'),
-        '出勤時刻': record.clockIn || '',
-        '退勤時刻': record.clockOut || '',
-        '勤務時間': this.calculateWorkHours(record.clockIn, record.clockOut),
-        '記録タイプ': record.type === 'auto' ? '自動' : '手動',
-        '承認状況': this.getStatusText(record.status),
-        '備考': record.note || ''
-      }
-    })
-
-    // エクスポート実行
-    const filename = `勤怠データ_${new Date().toLocaleDateString('ja-JP').replace(/\//g, '-')}`
-    
-    if (format === 'excel') {
-      this.exportToExcel(exportData, filename)
-    } else {
-      this.exportToCsv(exportData, filename)
-    }
+    return filteredRecords.map(record => ({
+      '日付': new Date(record.date).toLocaleDateString('ja-JP'),
+      'スタッフ名': getUserName(record.staffId),
+      'スタッフID': record.staffId,
+      '出勤時刻': record.clockIn || '',
+      '退勤時刻': record.clockOut || '',
+      '記録方法': record.type === 'manual' ? '手動入力' : '自動記録',
+      'ステータス': record.status === 'approved' ? '承認済み' : 
+                    record.status === 'rejected' ? '却下' : '承認待ち',
+      '備考': record.note || '',
+      '勤務時間': this.calculateWorkingHours(record.clockIn, record.clockOut),
+      'レコードID': record.id
+    }))
   }
 
-  // シフトデータをエクスポート
-  static async exportShifts(
+  // シフトデータのフォーマット
+  static formatShiftsForExport(
     shifts: Shift[], 
-    users: User[], 
-    format: 'excel' | 'csv',
-    dateRange?: { start: string; end: string }
-  ) {
-    // 日付フィルター
+    users: User[],
+    startDate?: string,
+    endDate?: string
+  ): any[] {
+    const getUserName = (staffId: string) => {
+      const user = users.find(u => u.id === staffId || u.staffId === staffId)
+      return user?.name || 'Unknown User'
+    }
+
     let filteredShifts = shifts
-    if (dateRange) {
-      filteredShifts = shifts.filter(shift => 
-        shift.date >= dateRange.start && shift.date <= dateRange.end
-      )
+
+    // 日付フィルタリング
+    if (startDate || endDate) {
+      filteredShifts = shifts.filter(shift => {
+        const shiftDate = new Date(shift.date)
+        if (startDate && shiftDate < new Date(startDate)) return false
+        if (endDate && shiftDate > new Date(endDate)) return false
+        return true
+      })
     }
 
-    // データを整形
-    const exportData = filteredShifts.map(shift => {
-      const user = users.find(u => u.staffId === shift.staffId)
-      return {
-        'スタッフID': shift.staffId,
-        'スタッフ名': user?.name || '不明',
-        '日付': new Date(shift.date).toLocaleDateString('ja-JP'),
-        '曜日': this.getWeekdayText(shift.date),
-        '開始時刻': shift.startTime,
-        '終了時刻': shift.endTime,
-        'シフト時間': this.calculateWorkHours(shift.startTime, shift.endTime),
-        'ポジション': shift.position || ''
-      }
-    })
-
-    // エクスポート実行
-    const filename = `シフトデータ_${new Date().toLocaleDateString('ja-JP').replace(/\//g, '-')}`
-    
-    if (format === 'excel') {
-      this.exportToExcel(exportData, filename)
-    } else {
-      this.exportToCsv(exportData, filename)
-    }
+    return filteredShifts.map(shift => ({
+      '日付': new Date(shift.date).toLocaleDateString('ja-JP'),
+      'スタッフ名': getUserName(shift.staffId),
+      'スタッフID': shift.staffId,
+      '開始時刻': shift.startTime,
+      '終了時刻': shift.endTime,
+      'ポジション': shift.position || '',
+      'シフト時間': this.calculateShiftHours(shift.startTime, shift.endTime),
+      'シフトID': shift.id
+    }))
   }
 
-  // スタッフデータをエクスポート
-  static async exportUsers(users: User[], format: 'excel' | 'csv') {
-    // データを整形
-    const exportData = users.map(user => ({
-      'スタッフID': user.staffId,
+  // スタッフデータのフォーマット
+  static formatUsersForExport(users: User[]): any[] {
+    return users.map(user => ({
       'スタッフ名': user.name,
+      'スタッフID': user.staffId,
       'メールアドレス': user.email,
-      '権限': this.getRoleText(user.role),
+      '権限': user.role === 'admin' ? '管理者' : 
+             user.role === 'creator' ? '作成者' : 'スタッフ',
       '生年月日': user.birthDate || '',
       '住所': user.address || '',
-      '電話番号': user.phone || ''
+      '電話番号': user.phone || '',
+      'ユーザーID': user.id
     }))
+  }
 
-    // エクスポート実行
-    const filename = `スタッフデータ_${new Date().toLocaleDateString('ja-JP').replace(/\//g, '-')}`
+  // 勤務時間計算
+  static calculateWorkingHours(clockIn?: string, clockOut?: string): string {
+    if (!clockIn || !clockOut) return ''
     
-    if (format === 'excel') {
-      this.exportToExcel(exportData, filename)
-    } else {
-      this.exportToCsv(exportData, filename)
+    try {
+      const startTime = new Date(`2000-01-01 ${clockIn}`)
+      const endTime = new Date(`2000-01-01 ${clockOut}`)
+      
+      // 終了時刻が開始時刻より早い場合は翌日とみなす
+      if (endTime < startTime) {
+        endTime.setDate(endTime.getDate() + 1)
+      }
+      
+      const diffMs = endTime.getTime() - startTime.getTime()
+      const diffHours = diffMs / (1000 * 60 * 60)
+      
+      const hours = Math.floor(diffHours)
+      const minutes = Math.round((diffHours - hours) * 60)
+      
+      return `${hours}時間${minutes}分`
+    } catch (error) {
+      return ''
     }
   }
 
-  // 複合レポートをエクスポート
-  static async exportSummaryReport(
+  // シフト時間計算
+  static calculateShiftHours(startTime: string, endTime: string): string {
+    return this.calculateWorkingHours(startTime, endTime)
+  }
+
+  // Excel形式のエクスポート（簡易版）
+  static exportToExcel(data: any[], filename: string): void {
+    // 実際のExcelエクスポートには外部ライブラリが必要
+    // ここではCSV形式でダウンロードし、ユーザーに説明を表示
+    this.exportToCsv(data, filename)
+    
+    // Excel形式での保存方法を案内
+    setTimeout(() => {
+      alert(
+        'CSVファイルがダウンロードされました。\n\n' +
+        'Excelで開く場合：\n' +
+        '1. ダウンロードしたCSVファイルをExcelで開く\n' +
+        '2. データが正しく表示されない場合は「データ」タブの「テキストから列へ」を使用\n' +
+        '3. 区切り文字として「カンマ」を選択'
+      )
+    }, 500)
+  }
+
+  // 統合エクスポート
+  static async exportData(
+    options: ExportOptions,
+    data: ExportData
+  ): Promise<void> {
+    try {
+      const now = new Date()
+      const timestamp = now.toISOString().slice(0, 16).replace(/[:-]/g, '')
+      
+      let exportData: any[] = []
+      let filename = ''
+
+      switch (options.dataType) {
+        case 'timeRecords':
+          exportData = this.formatTimeRecordsForExport(
+            data.timeRecords, 
+            data.users, 
+            options.startDate, 
+            options.endDate
+          )
+          filename = `勤怠データ_${timestamp}`
+          break
+
+        case 'shifts':
+          exportData = this.formatShiftsForExport(
+            data.shifts, 
+            data.users, 
+            options.startDate, 
+            options.endDate
+          )
+          filename = `シフトデータ_${timestamp}`
+          break
+
+        case 'users':
+          exportData = this.formatUsersForExport(data.users)
+          filename = `スタッフデータ_${timestamp}`
+          break
+
+        case 'all':
+          // 複数のシートに分けてエクスポート
+          const timeRecordsData = this.formatTimeRecordsForExport(
+            data.timeRecords, 
+            data.users, 
+            options.startDate, 
+            options.endDate
+          )
+          const shiftsData = this.formatShiftsForExport(
+            data.shifts, 
+            data.users, 
+            options.startDate, 
+            options.endDate
+          )
+          const usersData = this.formatUsersForExport(data.users)
+
+          // 個別にエクスポート
+          if (options.format === 'csv') {
+            this.exportToCsv(timeRecordsData, `勤怠データ_${timestamp}`)
+            setTimeout(() => this.exportToCsv(shiftsData, `シフトデータ_${timestamp}`), 1000)
+            setTimeout(() => this.exportToCsv(usersData, `スタッフデータ_${timestamp}`), 2000)
+          } else {
+            this.exportToExcel(timeRecordsData, `勤怠データ_${timestamp}`)
+            setTimeout(() => this.exportToExcel(shiftsData, `シフトデータ_${timestamp}`), 1000)
+            setTimeout(() => this.exportToExcel(usersData, `スタッフデータ_${timestamp}`), 2000)
+          }
+          return
+
+        default:
+          throw new Error('無効なデータタイプです')
+      }
+
+      if (exportData.length === 0) {
+        throw new Error('エクスポートするデータがありません')
+      }
+
+      // スタッフIDでフィルタリング
+      if (options.staffIds && options.staffIds.length > 0) {
+        exportData = exportData.filter(row => 
+          options.staffIds!.includes(row['スタッフID'])
+        )
+      }
+
+      // フォーマットに応じてエクスポート
+      if (options.format === 'csv') {
+        this.exportToCsv(exportData, filename)
+      } else {
+        this.exportToExcel(exportData, filename)
+      }
+
+    } catch (error) {
+      console.error('Export error:', error)
+      throw error
+    }
+  }
+
+  // 月次レポート生成
+  static generateMonthlyReport(
     timeRecords: TimeRecord[],
     shifts: Shift[],
     users: User[],
-    format: 'excel' | 'csv',
-    month: { year: number; month: number }
-  ) {
-    const startDate = new Date(month.year, month.month - 1, 1).toISOString().split('T')[0]
-    const endDate = new Date(month.year, month.month, 0).toISOString().split('T')[0]
+    year: number,
+    month: number
+  ): any[] {
+    const startDate = new Date(year, month - 1, 1)
+    const endDate = new Date(year, month, 0)
+    
+    const monthlyData = users.map(user => {
+      const userTimeRecords = timeRecords.filter(record => {
+        const recordDate = new Date(record.date)
+        return record.staffId === user.staffId &&
+               recordDate >= startDate &&
+               recordDate <= endDate &&
+               record.status === 'approved'
+      })
 
-    // 月次勤怠サマリー作成
-    const summaryData = users.map(user => {
-      const userTimeRecords = timeRecords.filter(record => 
-        record.staffId === user.staffId && 
-        record.date >= startDate && 
-        record.date <= endDate &&
-        record.status === 'approved'
-      )
+      const userShifts = shifts.filter(shift => {
+        const shiftDate = new Date(shift.date)
+        return shift.staffId === user.staffId &&
+               shiftDate >= startDate &&
+               shiftDate <= endDate
+      })
 
-      const userShifts = shifts.filter(shift => 
-        shift.staffId === user.staffId && 
-        shift.date >= startDate && 
-        shift.date <= endDate
-      )
-
-      const totalWorkDays = userTimeRecords.filter(record => record.clockIn && record.clockOut).length
-      const totalWorkHours = userTimeRecords.reduce((total, record) => {
+      // 勤務日数計算
+      const workDays = userTimeRecords.length
+      
+      // 総勤務時間計算
+      const totalWorkingHours = userTimeRecords.reduce((total, record) => {
         if (record.clockIn && record.clockOut) {
-          return total + this.calculateWorkHoursNumeric(record.clockIn, record.clockOut)
+          const hours = this.calculateWorkingHoursNumeric(record.clockIn, record.clockOut)
+          return total + hours
         }
         return total
       }, 0)
 
-      const totalScheduledDays = userShifts.length
-      const totalScheduledHours = userShifts.reduce((total, shift) => {
-        return total + this.calculateWorkHoursNumeric(shift.startTime, shift.endTime)
+      // 予定シフト時間計算
+      const scheduledHours = userShifts.reduce((total, shift) => {
+        const hours = this.calculateWorkingHoursNumeric(shift.startTime, shift.endTime)
+        return total + hours
       }, 0)
 
       return {
-        'スタッフID': user.staffId,
         'スタッフ名': user.name,
-        '権限': this.getRoleText(user.role),
-        '出勤日数': totalWorkDays,
-        '実働時間': Math.round(totalWorkHours * 10) / 10,
-        'シフト日数': totalScheduledDays,
-        'シフト時間': Math.round(totalScheduledHours * 10) / 10,
-        '出勤率': totalScheduledDays > 0 ? Math.round((totalWorkDays / totalScheduledDays) * 100) + '%' : '0%',
-        '平均勤務時間': totalWorkDays > 0 ? Math.round((totalWorkHours / totalWorkDays) * 10) / 10 : 0
+        'スタッフID': user.staffId,
+        '年月': `${year}年${month}月`,
+        '勤務日数': workDays,
+        '総勤務時間': `${Math.floor(totalWorkingHours)}時間${Math.round((totalWorkingHours % 1) * 60)}分`,
+        '予定シフト時間': `${Math.floor(scheduledHours)}時間${Math.round((scheduledHours % 1) * 60)}分`,
+        '勤務時間差': `${Math.floor(Math.abs(totalWorkingHours - scheduledHours))}時間${Math.round((Math.abs(totalWorkingHours - scheduledHours) % 1) * 60)}分`,
+        '勤務率': scheduledHours > 0 ? `${Math.round((totalWorkingHours / scheduledHours) * 100)}%` : '0%'
       }
     })
 
-    // エクスポート実行
-    const filename = `月次レポート_${month.year}年${month.month}月_${new Date().toLocaleDateString('ja-JP').replace(/\//g, '-')}`
-    
-    if (format === 'excel') {
-      this.exportToExcel(summaryData, filename)
-    } else {
-      this.exportToCsv(summaryData, filename)
-    }
+    return monthlyData
   }
 
-  // Excelファイルとしてエクスポート
-  private static exportToExcel(data: any[], filename: string) {
+  // 数値形式の勤務時間計算
+  private static calculateWorkingHoursNumeric(clockIn: string, clockOut: string): number {
     try {
-      const worksheet = XLSX.utils.json_to_sheet(data)
-      const workbook = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'データ')
-
-      // セルの幅を自動調整
-      const maxWidth = 20
-      const colWidths = Object.keys(data[0] || {}).map(key => ({
-        wch: Math.min(maxWidth, Math.max(10, key.length + 2))
-      }))
-      worksheet['!cols'] = colWidths
-
-      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
-      const blob = new Blob([excelBuffer], { 
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-      })
-      saveAs(blob, `${filename}.xlsx`)
-    } catch (error) {
-      console.error('Excel export error:', error)
-      throw new Error('Excelファイルの生成に失敗しました')
-    }
-  }
-
-  // CSVファイルとしてエクスポート
-  private static exportToCsv(data: any[], filename: string) {
-    try {
-      const worksheet = XLSX.utils.json_to_sheet(data)
-      const csvData = XLSX.utils.sheet_to_csv(worksheet)
+      const startTime = new Date(`2000-01-01 ${clockIn}`)
+      const endTime = new Date(`2000-01-01 ${clockOut}`)
       
-      // BOM付きでUTF-8エンコーディング
-      const BOM = '\uFEFF'
-      const blob = new Blob([BOM + csvData], { type: 'text/csv;charset=utf-8' })
-      saveAs(blob, `${filename}.csv`)
+      // 終了時刻が開始時刻より早い場合は翌日とみなす
+      if (endTime < startTime) {
+        endTime.setDate(endTime.getDate() + 1)
+      }
+      
+      const diffMs = endTime.getTime() - startTime.getTime()
+      return diffMs / (1000 * 60 * 60) // 時間単位で返す
     } catch (error) {
-      console.error('CSV export error:', error)
-      throw new Error('CSVファイルの生成に失敗しました')
+      return 0
     }
-  }
-
-  // 勤務時間計算（文字列表示用）
-  private static calculateWorkHours(startTime?: string, endTime?: string): string {
-    if (!startTime || !endTime) return ''
-    
-    const start = new Date(`2000-01-01 ${startTime}`)
-    const end = new Date(`2000-01-01 ${endTime}`)
-    
-    // 日付をまたぐ場合の処理
-    if (end < start) {
-      end.setDate(end.getDate() + 1)
-    }
-    
-    const diffMs = end.getTime() - start.getTime()
-    const hours = Math.floor(diffMs / (1000 * 60 * 60))
-    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
-    
-    return `${hours}時間${minutes}分`
-  }
-
-  // 勤務時間計算（数値用）
-  private static calculateWorkHoursNumeric(startTime: string, endTime: string): number {
-    const start = new Date(`2000-01-01 ${startTime}`)
-    const end = new Date(`2000-01-01 ${endTime}`)
-    
-    if (end < start) {
-      end.setDate(end.getDate() + 1)
-    }
-    
-    const diffMs = end.getTime() - start.getTime()
-    return diffMs / (1000 * 60 * 60) // 時間として返す
-  }
-
-  // 承認状況テキスト
-  private static getStatusText(status: string): string {
-    switch (status) {
-      case 'approved': return '承認済み'
-      case 'pending': return '承認待ち'
-      case 'rejected': return '却下'
-      default: return '不明'
-    }
-  }
-
-  // 権限テキスト
-  private static getRoleText(role: string): string {
-    switch (role) {
-      case 'admin': return '管理者'
-      case 'creator': return '作成者'
-      case 'staff': return 'スタッフ'
-      default: return '不明'
-    }
-  }
-
-  // 曜日テキスト
-  private static getWeekdayText(dateString: string): string {
-    const date = new Date(dateString)
-    const weekdays = ['日', '月', '火', '水', '木', '金', '土']
-    return weekdays[date.getDay()]
   }
 }

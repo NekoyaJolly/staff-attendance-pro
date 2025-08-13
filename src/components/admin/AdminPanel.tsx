@@ -21,13 +21,16 @@ import {
   Check,
   SelectionAll,
   CalendarCheck,
-  CalendarDots
+  CalendarDots,
+  Database
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { User, TimeRecord, Shift, CorrectionRequest, VacationRequest, PaidLeaveAlert } from '../../App'
 import QRGenerator from '../timecard/QRGenerator'
 import QRTest from '../timecard/QRTest'
 import PaidLeaveManagement from '../common/PaidLeaveManagement'
+import DataExportPanel from './DataExportPanel'
+import TestDataGenerator from './TestDataGenerator'
 
 interface AdminPanelProps {
   user: User
@@ -250,7 +253,8 @@ export default function AdminPanel({ user }: AdminPanelProps) {
   }
 
   const handleExport = (format: 'excel' | 'csv') => {
-    toast.info(`${format.toUpperCase()}形式でのエクスポート機能は開発中です`)
+    // この関数は使用しない（DataExportPanelで処理）
+    toast.info('新しいエクスポート機能をご利用ください')
   }
 
   return (
@@ -345,6 +349,11 @@ export default function AdminPanel({ user }: AdminPanelProps) {
                   <Download size={14} className="mr-1 sm:mr-2 sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">データ</span>
                   <span className="sm:hidden">Data</span>
+                </TabsTrigger>
+                <TabsTrigger value="testdata" className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap">
+                  <Database size={14} className="mr-1 sm:mr-2 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">テスト</span>
+                  <span className="sm:hidden">Test</span>
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -788,79 +797,17 @@ export default function AdminPanel({ user }: AdminPanelProps) {
         </TabsContent>
 
         {/* データエクスポート */}
-        <TabsContent value="export" className="p-6 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Download size={20} />
-                データエクスポート
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="max-h-96 overflow-y-auto space-y-6">
-              <div className="space-y-4">
-                <div className="border rounded-lg p-4">
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
-                    <Clock size={16} />
-                    勤怠データ
-                  </h4>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => handleExport('excel')} className="flex-1">
-                      <Download size={16} className="mr-2" />
-                      Excel
-                    </Button>
-                    <Button variant="outline" onClick={() => handleExport('csv')} className="flex-1">
-                      <Download size={16} className="mr-2" />
-                      CSV
-                    </Button>
-                  </div>
-                </div>
+        <TabsContent value="export" className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+          <DataExportPanel 
+            users={allUsers}
+            timeRecords={timeRecords}
+            shifts={shifts}
+          />
+        </TabsContent>
 
-                <div className="border rounded-lg p-4">
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
-                    <Calendar size={16} />
-                    シフトデータ
-                  </h4>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => handleExport('excel')} className="flex-1">
-                      <Download size={16} className="mr-2" />
-                      Excel
-                    </Button>
-                    <Button variant="outline" onClick={() => handleExport('csv')} className="flex-1">
-                      <Download size={16} className="mr-2" />
-                      CSV
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="border rounded-lg p-4">
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
-                    <Users size={16} />
-                    スタッフデータ
-                  </h4>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => handleExport('excel')} className="flex-1">
-                      <Download size={16} className="mr-2" />
-                      Excel
-                    </Button>
-                    <Button variant="outline" onClick={() => handleExport('csv')} className="flex-1">
-                      <Download size={16} className="mr-2" />
-                      CSV
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="text-xs text-muted-foreground p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <AlertCircle size={16} className="text-amber-600 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="font-medium text-amber-800 mb-1">個人情報の取り扱いについて</p>
-                    <p className="text-amber-700">エクスポートされるデータには個人情報が含まれています。適切な管理と取り扱いにご注意ください。</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* テストデータ生成 */}
+        <TabsContent value="testdata" className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+          <TestDataGenerator />
         </TabsContent>
 
         {/* 有給管理 */}
