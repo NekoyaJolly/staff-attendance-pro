@@ -1,29 +1,50 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { User, Edit, Mail, Phone, MapPin, Calendar } from '@phosphor-icons/react'
+import { Separator } from '@/components/ui/separator'
+import { User, Edit, Mail, Phone, MapPin, Calendar, CurrencyYen, Bus, CalendarCheck } from '@phosphor-icons/react'
 import { toast } from 'sonner'
-import { User as UserType } from '../../App'
+import { useKV } from '@github/spark/hooks'
+import { User as UserType, PayrollInfo } from '../../App'
+import VacationRequestDialog from './VacationRequestDialog'
 
 interface ProfileViewProps {
   user: UserType
+  isAdmin?: boolean
 }
 
-export default function ProfileView({ user }: ProfileViewProps) {
+export default function ProfileView({ user, isAdmin = false }: ProfileViewProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editedUser, setEditedUser] = useState(user)
+  const [payrollInfo, setPayrollInfo] = useKV<PayrollInfo>(`payroll_${user.id}`, {
+    hourlyRate: 1000,
+    transportationAllowance: 500,
+    remainingPaidLeave: 20,
+    paidLeaveExpiry: '2025-03-31'
+  })
+  const [editedPayroll, setEditedPayroll] = useState(payrollInfo)
+
+  useEffect(() => {
+    setEditedPayroll(payrollInfo)
+  }, [payrollInfo])
 
   const handleSave = () => {
     // 実際の実装では、ここでAPIを呼び出してユーザー情報を更新
-    toast.success('プロフィールを更新しました')
+    if (isAdmin) {
+      setPayrollInfo(editedPayroll)
+      toast.success('給与情報を更新しました')
+    } else {
+      toast.success('プロフィールを更新しました')
+    }
     setIsEditing(false)
   }
 
   const handleCancel = () => {
     setEditedUser(user)
+    setEditedPayroll(payrollInfo)
     setIsEditing(false)
   }
 
@@ -177,6 +198,117 @@ export default function ProfileView({ user }: ProfileViewProps) {
                 </Button>
               </div>
             )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 給与・勤務条件 */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <CurrencyYen size={20} />
+              給与・勤務条件
+            </CardTitle>
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditing(!isEditing)}
+              >
+                <Edit size={16} className="mr-1" />
+                {isEditing ? 'キャンセル' : '編集'}
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <Label htmlFor="hourly-rate">時給</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <CurrencyYen size={16} className="text-muted-foreground" />
+                <Input
+                  id="hourly-rate"
+                  type="number"
+                  value={editedPayroll.hourlyRate}
+                  onChange={(e) => setEditedPayroll(prev => ({ ...prev, hourlyRate: Number(e.target.value) }))}
+                  disabled={!isEditing || !isAdmin}
+                  className={(!isEditing || !isAdmin) ? "bg-muted" : ""}
+                />
+                <span className="text-sm text-muted-foreground">円</span>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="transportation">交通費</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Bus size={16} className="text-muted-foreground" />
+                <Input
+                  id="transportation"
+                  type="number"
+                  value={editedPayroll.transportationAllowance}
+                  onChange={(e) => setEditedPayroll(prev => ({ ...prev, transportationAllowance: Number(e.target.value) }))}
+                  disabled={!isEditing || !isAdmin}
+                  className={(!isEditing || !isAdmin) ? "bg-muted" : ""}
+                />
+                <span className="text-sm text-muted-foreground">円/日</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 有給休暇情報 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CalendarCheck size={20} />
+            有給休暇
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <Label htmlFor="remaining-leave">有給残日数</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <CalendarCheck size={16} className="text-muted-foreground" />
+                <Input
+                  id="remaining-leave"
+                  type="number"
+                  value={editedPayroll.remainingPaidLeave}
+                  onChange={(e) => setEditedPayroll(prev => ({ ...prev, remainingPaidLeave: Number(e.target.value) }))}
+                  disabled={!isEditing || !isAdmin}
+                  className={(!isEditing || !isAdmin) ? "bg-muted" : ""}
+                />
+                <span className="text-sm text-muted-foreground">日</span>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="leave-expiry">有給休暇期限</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Calendar size={16} className="text-muted-foreground" />
+                <Input
+                  id="leave-expiry"
+                  type="date"
+                  value={editedPayroll.paidLeaveExpiry}
+                  onChange={(e) => setEditedPayroll(prev => ({ ...prev, paidLeaveExpiry: e.target.value }))}
+                  disabled={!isEditing || !isAdmin}
+                  className={(!isEditing || !isAdmin) ? "bg-muted" : ""}
+                />
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+          
+          {/* 有給申請ボタン */}
+          <div className="pt-2">
+            <VacationRequestDialog 
+              staffId={user.id} 
+              remainingDays={payrollInfo.remainingPaidLeave} 
+            />
           </div>
         </CardContent>
       </Card>

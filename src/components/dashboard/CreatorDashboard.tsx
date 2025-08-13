@@ -23,7 +23,7 @@ export default function CreatorDashboard({ user, onLogout }: CreatorDashboardPro
       case 'create':
         return <ShiftCreator user={user} />
       case 'profile':
-        return <ProfileView user={user} />
+        return <ProfileView user={user} isAdmin={false} />
       default:
         return <TimeCardView user={user} />
     }

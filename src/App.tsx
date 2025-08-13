@@ -50,6 +50,24 @@ export interface CorrectionRequest {
   createdAt: string
 }
 
+export interface PayrollInfo {
+  hourlyRate: number // 時給
+  transportationAllowance: number // 交通費
+  remainingPaidLeave: number // 有給残日数
+  paidLeaveExpiry: string // 有給休暇期限
+}
+
+export interface VacationRequest {
+  id: string
+  staffId: string
+  startDate: string
+  endDate: string
+  days: number
+  reason: string
+  status: 'pending' | 'approved' | 'rejected'
+  createdAt: string
+}
+
 function App() {
   const [currentUser, setCurrentUser] = useKV<User | null>('currentUser', null)
   const [isLoading, setIsLoading] = useState(true)

@@ -20,7 +20,7 @@ export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) 
       case 'shift':
         return <ShiftView user={user} />
       case 'profile':
-        return <ProfileView user={user} />
+        return <ProfileView user={user} isAdmin={false} />
       default:
         return <TimeCardView user={user} />
     }

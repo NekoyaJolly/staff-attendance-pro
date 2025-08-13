@@ -19,10 +19,11 @@ import {
   QrCode,
   TestTube,
   Check,
-  SelectionAll
+  SelectionAll,
+  CalendarCheck
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
-import { User, TimeRecord, Shift, CorrectionRequest } from '../../App'
+import { User, TimeRecord, Shift, CorrectionRequest, VacationRequest } from '../../App'
 import QRGenerator from '../timecard/QRGenerator'
 import QRTest from '../timecard/QRTest'
 
@@ -35,7 +36,10 @@ export default function AdminPanel({ user }: AdminPanelProps) {
   const [shifts] = useKV<Shift[]>('shifts', [])
   const [allUsers] = useKV<User[]>('allUsers', [])
   const [correctionRequests, setCorrectionRequests] = useKV<CorrectionRequest[]>('correctionRequests', [])
+  const [vacationRequests, setVacationRequests] = useKV<VacationRequest[]>('vacationRequests', [])
   const [selectedRecords, setSelectedRecords] = useState<string[]>([])
+  const [selectedCorrections, setSelectedCorrections] = useState<string[]>([])
+  const [selectedVacations, setSelectedVacations] = useState<string[]>([])
 
   // 承認待ちの勤怠記録を取得
   const getPendingRecords = () => {
@@ -45,6 +49,11 @@ export default function AdminPanel({ user }: AdminPanelProps) {
   // 承認待ちの修正リクエストを取得
   const getPendingCorrections = () => {
     return correctionRequests.filter(req => req.status === 'pending')
+  }
+
+  // 承認待ちの有給申請を取得
+  const getPendingVacations = () => {
+    return vacationRequests.filter(req => req.status === 'pending')
   }
 
   // 統計データを計算
@@ -60,7 +69,7 @@ export default function AdminPanel({ user }: AdminPanelProps) {
 
     const totalStaff = allUsers.length
     const activeStaff = new Set(currentMonthRecords.map(r => r.staffId)).size
-    const pendingApprovals = getPendingRecords().length + getPendingCorrections().length
+    const pendingApprovals = getPendingRecords().length + getPendingCorrections().length + getPendingVacations().length
     const totalShifts = shifts.filter(shift => {
       const shiftDate = new Date(shift.date)
       return shiftDate.getMonth() === currentMonth && shiftDate.getFullYear() === currentYear
@@ -120,6 +129,23 @@ export default function AdminPanel({ user }: AdminPanelProps) {
     toast.success(approved ? '修正を承認しました' : '修正を却下しました')
   }
 
+  const handleVacationApproval = (requestId: string, approved: boolean) => {
+    setVacationRequests(current => 
+      current.map(req => 
+        req.id === requestId 
+          ? { ...req, status: approved ? 'approved' : 'rejected' }
+          : req
+      )
+    )
+
+    toast.success(approved ? '有給申請を承認しました' : '有給申請を却下しました')
+  }
+
+  const getUserName = (staffId: string) => {
+    const user = allUsers.find(u => u.id === staffId || u.staffId === staffId)
+    return user?.name || 'Unknown User'
+  }
+
   const handleBulkApproval = (approved: boolean) => {
     if (selectedRecords.length === 0) {
       toast.error('承認するレコードを選択してください')
@@ -138,12 +164,61 @@ export default function AdminPanel({ user }: AdminPanelProps) {
     toast.success(`${selectedRecords.length}件の記録を${approved ? '承認' : '却下'}しました`)
   }
 
+  const handleBulkCorrectionApproval = (approved: boolean) => {
+    if (selectedCorrections.length === 0) {
+      toast.error('承認する修正リクエストを選択してください')
+      return
+    }
+
+    selectedCorrections.forEach(id => {
+      handleCorrectionApproval(id, approved)
+    })
+
+    setSelectedCorrections([])
+  }
+
+  const handleBulkVacationApproval = (approved: boolean) => {
+    if (selectedVacations.length === 0) {
+      toast.error('承認する有給申請を選択してください')
+      return
+    }
+
+    setVacationRequests(current => 
+      current.map(req => 
+        selectedVacations.includes(req.id)
+          ? { ...req, status: approved ? 'approved' : 'rejected' }
+          : req
+      )
+    )
+
+    setSelectedVacations([])
+    toast.success(`${selectedVacations.length}件の有給申請を${approved ? '承認' : '却下'}しました`)
+  }
+
   const handleSelectAll = () => {
     const pendingRecords = getPendingRecords()
     if (selectedRecords.length === pendingRecords.length) {
       setSelectedRecords([])
     } else {
       setSelectedRecords(pendingRecords.map(record => record.id))
+    }
+  }
+
+  const handleSelectAllCorrections = () => {
+    const pendingCorrections = getPendingCorrections()
+    if (selectedCorrections.length === pendingCorrections.length) {
+      setSelectedCorrections([])
+    } else {
+      setSelectedCorrections(pendingCorrections.map(req => req.id))
+    }
+  }
+
+  const handleSelectAllVacations = () => {
+    const pendingVacations = getPendingVacations()
+    if (selectedVacations.length === pendingVacations.length) {
+      setSelectedVacations([])
+    } else {
+      setSelectedVacations(pendingVacations.map(req => req.id))
     }
   }
 
@@ -155,13 +230,24 @@ export default function AdminPanel({ user }: AdminPanelProps) {
     )
   }
 
-  const handleExport = (format: 'excel' | 'csv') => {
-    toast.info(`${format.toUpperCase()}形式でのエクスポート機能は開発中です`)
+  const handleCorrectionSelect = (requestId: string) => {
+    setSelectedCorrections(current => 
+      current.includes(requestId)
+        ? current.filter(id => id !== requestId)
+        : [...current, requestId]
+    )
   }
 
-  const getUserName = (staffId: string) => {
-    const user = allUsers.find(u => u.staffId === staffId)
-    return user ? user.name : '不明'
+  const handleVacationSelect = (requestId: string) => {
+    setSelectedVacations(current => 
+      current.includes(requestId)
+        ? current.filter(id => id !== requestId)
+        : [...current, requestId]
+    )
+  }
+
+  const handleExport = (format: 'excel' | 'csv') => {
+    toast.info(`${format.toUpperCase()}形式でのエクスポート機能は開発中です`)
   }
 
   return (
@@ -357,16 +443,52 @@ export default function AdminPanel({ user }: AdminPanelProps) {
 
           {/* 修正リクエストの承認 */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertCircle size={20} />
-                打刻修正の承認待ち
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <AlertCircle size={20} />
+                  打刻修正の承認待ち
+                  {getPendingCorrections().length > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      {getPendingCorrections().length}
+                    </Badge>
+                  )}
+                </CardTitle>
                 {getPendingCorrections().length > 0 && (
-                  <Badge variant="secondary" className="ml-2">
-                    {getPendingCorrections().length}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSelectAllCorrections}
+                      className="flex items-center gap-2"
+                    >
+                      <SelectionAll size={16} />
+                      {selectedCorrections.length === getPendingCorrections().length ? '全選択解除' : '全選択'}
+                    </Button>
+                    {selectedCorrections.length > 0 && (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleBulkCorrectionApproval(true)}
+                          className="flex items-center gap-2"
+                        >
+                          <Check size={16} />
+                          一括承認 ({selectedCorrections.length})
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleBulkCorrectionApproval(false)}
+                          className="flex items-center gap-2"
+                        >
+                          <XCircle size={16} />
+                          一括却下 ({selectedCorrections.length})
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 )}
-              </CardTitle>
+              </div>
             </CardHeader>
             <CardContent className="max-h-96 overflow-y-auto">
               <div className="space-y-3">
@@ -377,52 +499,162 @@ export default function AdminPanel({ user }: AdminPanelProps) {
                   </div>
                 ) : (
                   getPendingCorrections().map((request) => (
-                    <div key={request.id} className="p-4 border rounded-lg bg-card">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="font-medium">{getUserName(request.staffId)}</div>
-                          <div className="text-sm text-muted-foreground mb-2">
-                            申請日: {new Date(request.createdAt).toLocaleDateString('ja-JP')}
+                    <div key={request.id} className="flex items-center gap-3 p-4 border rounded-lg bg-card hover:bg-muted/30 transition-colors">
+                      <Checkbox
+                        checked={selectedCorrections.includes(request.id)}
+                        onCheckedChange={() => handleCorrectionSelect(request.id)}
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium">{getUserName(request.staffId)}</div>
+                        <div className="text-sm text-muted-foreground mb-2">
+                          申請日: {new Date(request.createdAt).toLocaleDateString('ja-JP')}
+                        </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-sm">
+                          <div className="space-y-1">
+                            <div className="font-medium text-destructive">修正前</div>
+                            {request.originalClockIn && (
+                              <div>出勤: {request.originalClockIn}</div>
+                            )}
+                            {request.originalClockOut && (
+                              <div>退勤: {request.originalClockOut}</div>
+                            )}
                           </div>
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-sm">
-                            <div className="space-y-1">
-                              <div className="font-medium text-destructive">修正前</div>
-                              {request.originalClockIn && (
-                                <div>出勤: {request.originalClockIn}</div>
-                              )}
-                              {request.originalClockOut && (
-                                <div>退勤: {request.originalClockOut}</div>
-                              )}
-                            </div>
-                            <div className="space-y-1">
-                              <div className="font-medium text-green-600">修正後</div>
-                              {request.correctedClockIn && (
-                                <div>出勤: {request.correctedClockIn}</div>
-                              )}
-                              {request.correctedClockOut && (
-                                <div>退勤: {request.correctedClockOut}</div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="mt-2 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded">
-                            理由: {request.reason}
+                          <div className="space-y-1">
+                            <div className="font-medium text-green-600">修正後</div>
+                            {request.correctedClockIn && (
+                              <div>出勤: {request.correctedClockIn}</div>
+                            )}
+                            {request.correctedClockOut && (
+                              <div>退勤: {request.correctedClockOut}</div>
+                            )}
                           </div>
                         </div>
-                        <div className="flex gap-2 shrink-0 ml-4">
-                          <Button
-                            size="sm"
-                            onClick={() => handleCorrectionApproval(request.id, true)}
-                          >
-                            <CheckCircle size={16} />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleCorrectionApproval(request.id, false)}
-                          >
-                            <XCircle size={16} />
-                          </Button>
+                        <div className="mt-2 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded">
+                          理由: {request.reason}
                         </div>
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          onClick={() => handleCorrectionApproval(request.id, true)}
+                          className="h-8 px-3"
+                        >
+                          <CheckCircle size={14} />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleCorrectionApproval(request.id, false)}
+                          className="h-8 px-3"
+                        >
+                          <XCircle size={14} />
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 有給申請の承認 */}
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <CalendarCheck size={20} />
+                  有給申請の承認待ち
+                  {getPendingVacations().length > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      {getPendingVacations().length}
+                    </Badge>
+                  )}
+                </CardTitle>
+                {getPendingVacations().length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSelectAllVacations}
+                      className="flex items-center gap-2"
+                    >
+                      <SelectionAll size={16} />
+                      {selectedVacations.length === getPendingVacations().length ? '全選択解除' : '全選択'}
+                    </Button>
+                    {selectedVacations.length > 0 && (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleBulkVacationApproval(true)}
+                          className="flex items-center gap-2"
+                        >
+                          <Check size={16} />
+                          一括承認 ({selectedVacations.length})
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleBulkVacationApproval(false)}
+                          className="flex items-center gap-2"
+                        >
+                          <XCircle size={16} />
+                          一括却下 ({selectedVacations.length})
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="max-h-96 overflow-y-auto">
+              <div className="space-y-3">
+                {getPendingVacations().length === 0 ? (
+                  <div className="text-center py-8">
+                    <CalendarCheck size={48} className="mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">承認待ちの有給申請はありません</p>
+                  </div>
+                ) : (
+                  getPendingVacations().map((request) => (
+                    <div key={request.id} className="flex items-center gap-3 p-4 border rounded-lg bg-card hover:bg-muted/30 transition-colors">
+                      <Checkbox
+                        checked={selectedVacations.includes(request.id)}
+                        onCheckedChange={() => handleVacationSelect(request.id)}
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium">{getUserName(request.staffId)}</div>
+                        <div className="text-sm text-muted-foreground mb-2">
+                          申請日: {new Date(request.createdAt).toLocaleDateString('ja-JP')}
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className="font-medium">期間: </span>
+                            {new Date(request.startDate).toLocaleDateString('ja-JP')} 〜 {new Date(request.endDate).toLocaleDateString('ja-JP')}
+                          </div>
+                          <div>
+                            <span className="font-medium">日数: </span>
+                            {request.days}日
+                          </div>
+                        </div>
+                        <div className="mt-2 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded">
+                          理由: {request.reason}
+                        </div>
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          onClick={() => handleVacationApproval(request.id, true)}
+                          className="h-8 px-3"
+                        >
+                          <CheckCircle size={14} />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleVacationApproval(request.id, false)}
+                          className="h-8 px-3"
+                        >
+                          <XCircle size={14} />
+                        </Button>
                       </div>
                     </div>
                   ))

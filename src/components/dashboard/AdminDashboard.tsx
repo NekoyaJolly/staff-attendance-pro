@@ -23,7 +23,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
       case 'timecard':
         return <TimeCardView user={user} />
       case 'profile':
-        return <ProfileView user={user} />
+        return <ProfileView user={user} isAdmin={true} />
       default:
         return <TimeCardView user={user} />
     }
