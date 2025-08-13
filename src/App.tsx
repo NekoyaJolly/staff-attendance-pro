@@ -37,6 +37,19 @@ export interface Shift {
   position?: string
 }
 
+export interface CorrectionRequest {
+  id: string
+  recordId: string
+  staffId: string
+  originalClockIn?: string
+  originalClockOut?: string
+  correctedClockIn?: string
+  correctedClockOut?: string
+  reason: string
+  status: 'pending' | 'approved' | 'rejected'
+  createdAt: string
+}
+
 function App() {
   const [currentUser, setCurrentUser] = useKV<User | null>('currentUser', null)
   const [isLoading, setIsLoading] = useState(true)

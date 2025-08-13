@@ -7,9 +7,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Clock, Camera, Edit, CheckCircle, XCircle, AlertCircle } from '@phosphor-icons/react'
+import { Clock, Camera, Edit, CheckCircle, XCircle, AlertCircle, Pencil } from '@phosphor-icons/react'
 import { toast } from 'sonner'
-import { User, TimeRecord } from '../../App'
+import { User, TimeRecord, CorrectionRequest } from '../../App'
 import QRScanner from './QRScanner'
 
 interface TimeCardViewProps {
@@ -18,12 +18,18 @@ interface TimeCardViewProps {
 
 export default function TimeCardView({ user }: TimeCardViewProps) {
   const [timeRecords, setTimeRecords] = useKV<TimeRecord[]>('timeRecords', [])
+  const [correctionRequests, setCorrectionRequests] = useKV<CorrectionRequest[]>('correctionRequests', [])
   const [currentStatus, setCurrentStatus] = useState<'out' | 'in'>('out')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isCorrectionDialogOpen, setIsCorrectionDialogOpen] = useState(false)
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
   const [recordType, setRecordType] = useState<'clockIn' | 'clockOut'>('clockIn')
   const [manualTime, setManualTime] = useState('')
   const [note, setNote] = useState('')
+  const [selectedRecord, setSelectedRecord] = useState<TimeRecord | null>(null)
+  const [correctedClockIn, setCorrectedClockIn] = useState('')
+  const [correctedClockOut, setCorrectedClockOut] = useState('')
+  const [correctionReason, setCorrectionReason] = useState('')
 
   // 現在の勤務状態をチェック
   useEffect(() => {
@@ -130,6 +136,52 @@ export default function TimeCardView({ user }: TimeCardViewProps) {
     handleTimeRecord('manual', manualTime)
   }
 
+  // 打刻修正ダイアログを開く
+  const openCorrectionDialog = (record: TimeRecord) => {
+    setSelectedRecord(record)
+    setCorrectedClockIn(record.clockIn || '')
+    setCorrectedClockOut(record.clockOut || '')
+    setCorrectionReason('')
+    setIsCorrectionDialogOpen(true)
+  }
+
+  // 打刻修正申請を送信
+  const handleCorrectionSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedRecord) return
+
+    if (!correctedClockIn && !correctedClockOut) {
+      toast.error('修正する時刻を入力してください')
+      return
+    }
+
+    if (!correctionReason.trim()) {
+      toast.error('修正理由を入力してください')
+      return
+    }
+
+    const correctionRequest: CorrectionRequest = {
+      id: `correction-${Date.now()}`,
+      recordId: selectedRecord.id,
+      staffId: user.staffId,
+      originalClockIn: selectedRecord.clockIn,
+      originalClockOut: selectedRecord.clockOut,
+      correctedClockIn: correctedClockIn || selectedRecord.clockIn,
+      correctedClockOut: correctedClockOut || selectedRecord.clockOut,
+      reason: correctionReason,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    }
+
+    setCorrectionRequests(current => [...current, correctionRequest])
+    toast.success('打刻修正申請を送信しました。管理者の承認をお待ちください。')
+    setIsCorrectionDialogOpen(false)
+    setSelectedRecord(null)
+    setCorrectedClockIn('')
+    setCorrectedClockOut('')
+    setCorrectionReason('')
+  }
+
   // 今月の勤怠記録を取得
   const getCurrentMonthRecords = () => {
     const now = new Date()
@@ -230,34 +282,60 @@ export default function TimeCardView({ user }: TimeCardViewProps) {
                 まだ勤怠記録がありません
               </p>
             ) : (
-              monthlyRecords.map((record) => (
-                <div key={record.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <div className="font-medium">
-                      {new Date(record.date).toLocaleDateString('ja-JP', {
-                        month: 'numeric',
-                        day: 'numeric',
-                        weekday: 'short'
-                      })}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {record.clockIn && `出勤: ${record.clockIn}`}
-                      {record.clockOut && ` / 退勤: ${record.clockOut}`}
-                    </div>
-                    {record.note && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        備考: {record.note}
+              monthlyRecords.map((record) => {
+                // この記録に対する修正申請があるかチェック
+                const pendingCorrection = correctionRequests.find(
+                  req => req.recordId === record.id && req.status === 'pending'
+                )
+                
+                return (
+                  <div key={record.id} className="p-3 border rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="font-medium">
+                          {new Date(record.date).toLocaleDateString('ja-JP', {
+                            month: 'numeric',
+                            day: 'numeric',
+                            weekday: 'short'
+                          })}
+                        </div>
+                        <div className="text-sm text-muted-foreground flex items-center gap-4">
+                          <span>
+                            {record.clockIn && `出勤: ${record.clockIn}`}
+                            {record.clockOut && ` / 退勤: ${record.clockOut}`}
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => openCorrectionDialog(record)}
+                            disabled={!!pendingCorrection}
+                            className="h-6 px-2 text-xs"
+                          >
+                            <Pencil size={12} className="mr-1" />
+                            {pendingCorrection ? '申請中' : '打刻修正'}
+                          </Button>
+                        </div>
+                        {record.note && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            備考: {record.note}
+                          </div>
+                        )}
+                        {pendingCorrection && (
+                          <div className="text-xs text-yellow-600 mt-1 bg-yellow-50 px-2 py-1 rounded">
+                            修正申請中: {pendingCorrection.reason}
+                          </div>
+                        )}
                       </div>
-                    )}
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(record.status)}
+                        <Badge variant={record.type === 'manual' ? 'outline' : 'secondary'}>
+                          {record.type === 'manual' ? '手動' : '自動'}
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusIcon(record.status)}
-                    <Badge variant={record.type === 'manual' ? 'outline' : 'secondary'}>
-                      {record.type === 'manual' ? '手動' : '自動'}
-                    </Badge>
-                  </div>
-                </div>
-              ))
+                )
+              })
             )}
           </div>
         </CardContent>
@@ -329,6 +407,92 @@ export default function TimeCardView({ user }: TimeCardViewProps) {
         onScanSuccess={handleQRScanSuccess}
         staffId={user.staffId}
       />
+
+      {/* 打刻修正ダイアログ */}
+      <Dialog open={isCorrectionDialogOpen} onOpenChange={setIsCorrectionDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>打刻修正申請</DialogTitle>
+          </DialogHeader>
+          
+          {selectedRecord && (
+            <form onSubmit={handleCorrectionSubmit} className="space-y-4">
+              <div className="p-3 bg-muted rounded-lg">
+                <div className="text-sm font-medium">修正対象日</div>
+                <div className="text-xs text-muted-foreground">
+                  {new Date(selectedRecord.date).toLocaleDateString('ja-JP', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    weekday: 'long'
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="original-times">現在の記録</Label>
+                  <div className="text-sm text-muted-foreground mt-1">
+                    出勤: {selectedRecord.clockIn || '未記録'} / 
+                    退勤: {selectedRecord.clockOut || '未記録'}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="corrected-clock-in">修正後 出勤時刻</Label>
+                    <Input
+                      id="corrected-clock-in"
+                      type="time"
+                      value={correctedClockIn}
+                      onChange={(e) => setCorrectedClockIn(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="corrected-clock-out">修正後 退勤時刻</Label>
+                    <Input
+                      id="corrected-clock-out"
+                      type="time"
+                      value={correctedClockOut}
+                      onChange={(e) => setCorrectedClockOut(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="correction-reason">修正理由 *</Label>
+                  <Textarea
+                    id="correction-reason"
+                    placeholder="打刻の修正が必要な理由を入力してください"
+                    value={correctionReason}
+                    onChange={(e) => setCorrectionReason(e.target.value)}
+                    rows={3}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="text-xs text-muted-foreground">
+                ※ 申請は管理者の承認が必要です
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsCorrectionDialogOpen(false)}
+                  className="flex-1"
+                >
+                  キャンセル
+                </Button>
+                <Button type="submit" className="flex-1">
+                  申請する
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

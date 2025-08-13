@@ -12,20 +12,20 @@ interface CreatorDashboardProps {
 }
 
 export default function CreatorDashboard({ user, onLogout }: CreatorDashboardProps) {
-  const [activeTab, setActiveTab] = useState('shift')
+  const [activeTab, setActiveTab] = useState('timecard')
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'shift':
-        return <ShiftView user={user} />
       case 'timecard':
         return <TimeCardView user={user} />
+      case 'shift':
+        return <ShiftView user={user} />
       case 'create':
         return <ShiftCreator user={user} />
       case 'profile':
         return <ProfileView user={user} />
       default:
-        return <ShiftView user={user} />
+        return <TimeCardView user={user} />
     }
   }
 

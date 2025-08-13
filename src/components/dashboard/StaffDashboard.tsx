@@ -11,18 +11,18 @@ interface StaffDashboardProps {
 }
 
 export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) {
-  const [activeTab, setActiveTab] = useState('shift')
+  const [activeTab, setActiveTab] = useState('timecard')
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'shift':
-        return <ShiftView user={user} />
       case 'timecard':
         return <TimeCardView user={user} />
+      case 'shift':
+        return <ShiftView user={user} />
       case 'profile':
         return <ProfileView user={user} />
       default:
-        return <ShiftView user={user} />
+        return <TimeCardView user={user} />
     }
   }
 
