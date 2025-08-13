@@ -20,12 +20,13 @@ import { toast } from 'sonner'
 interface PaidLeaveManagementProps {
   user: User
   isAdmin?: boolean
+  children?: React.ReactNode
 }
 
 /**
  * 有給休暇管理パネル
  */
-export default function PaidLeaveManagement({ user, isAdmin = false }: PaidLeaveManagementProps) {
+export default function PaidLeaveManagement({ user, isAdmin = false, children }: PaidLeaveManagementProps) {
   const [payrollInfo, setPayrollInfo] = useKV<PayrollInfo>(`payroll_${user.id}`, {
     hourlyRate: 1000,
     transportationAllowance: 0,
@@ -132,69 +133,59 @@ export default function PaidLeaveManagement({ user, isAdmin = false }: PaidLeave
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <motion.div 
-              className="text-center p-4 bg-primary/10 rounded-lg"
+              className="text-center p-3 bg-primary/10 rounded-lg"
               whileHover={{ scale: 1.02 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="text-2xl font-bold text-primary">
+              <div className="text-xl font-bold text-primary">
                 {payrollInfo.remainingPaidLeave}
               </div>
-              <div className="text-sm text-muted-foreground">残日数</div>
+              <div className="text-xs text-muted-foreground">残日数</div>
             </motion.div>
             
             <motion.div 
-              className="text-center p-4 bg-accent/10 rounded-lg"
+              className="text-center p-3 bg-accent/10 rounded-lg"
               whileHover={{ scale: 1.02 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="text-2xl font-bold text-accent-foreground">
+              <div className="text-xl font-bold text-accent-foreground">
                 {payrollInfo.usedPaidLeave}
               </div>
-              <div className="text-sm text-muted-foreground">使用済み</div>
+              <div className="text-xs text-muted-foreground">使用済み</div>
             </motion.div>
             
             <motion.div 
-              className="text-center p-4 bg-secondary rounded-lg"
+              className="text-center p-3 bg-secondary rounded-lg"
               whileHover={{ scale: 1.02 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="text-2xl font-bold text-secondary-foreground">
+              <div className="text-xl font-bold text-secondary-foreground">
                 {payrollInfo.totalPaidLeave}
               </div>
-              <div className="text-sm text-muted-foreground">年間付与</div>
+              <div className="text-xs text-muted-foreground">年間付与</div>
             </motion.div>
             
             <motion.div 
-              className="text-center p-4 bg-muted rounded-lg"
+              className="text-center p-3 bg-muted rounded-lg"
               whileHover={{ scale: 1.02 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="text-2xl font-bold text-foreground">
+              <div className="text-xl font-bold text-foreground">
                 {daysUntilExpiry}
               </div>
-              <div className="text-sm text-muted-foreground">有効期限まで</div>
+              <div className="text-xs text-muted-foreground">期限まで(日)</div>
             </motion.div>
           </div>
-
-          <div className="mt-6">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium">使用率</span>
-              <span className="text-sm text-muted-foreground">
-                {usagePercentage.toFixed(1)}%
-              </span>
-            </div>
-            <Progress value={usagePercentage} className="h-2" />
-          </div>
-
-          <div className="mt-4 text-sm text-muted-foreground">
-            <div className="flex items-center space-x-4">
-              <span>付与日: {new Date(payrollInfo.lastGrantDate).toLocaleDateString('ja-JP')}</span>
-              <span>有効期限: {new Date(payrollInfo.paidLeaveExpiry).toLocaleDateString('ja-JP')}</span>
-            </div>
-          </div>
         </CardContent>
+        
+        {/* 子要素を追加 */}
+        {children && (
+          <CardContent className="pt-0">
+            {children}
+          </CardContent>
+        )}
       </Card>
 
       {/* アクションボタン */}
@@ -242,32 +233,6 @@ export default function PaidLeaveManagement({ user, isAdmin = false }: PaidLeave
         </Card>
       )}
 
-      {/* 詳細情報 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>詳細情報</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">入社日</span>
-              <span>{new Date(payrollInfo.workStartDate).toLocaleDateString('ja-JP')}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">勤続年数</span>
-              <span>
-                {Math.floor((new Date().getTime() - new Date(payrollInfo.workStartDate).getTime()) / (1000 * 60 * 60 * 24 * 365.25))}年
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">次回付与予定</span>
-              <span>
-                {new Date(new Date(payrollInfo.lastGrantDate).getTime() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString('ja-JP')}
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

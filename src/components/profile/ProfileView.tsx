@@ -5,11 +5,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { User, Edit, Mail, Phone, MapPin, Calendar, CurrencyYen, Bus, CalendarCheck } from '@phosphor-icons/react'
+import { User, Edit, Mail, Phone, MapPin, Calendar, CurrencyYen, Bus, CalendarCheck, Lock, Fingerprint, Bell, Briefcase } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { useKV } from '@github/spark/hooks'
 import { User as UserType, PayrollInfo } from '../../App'
 import VacationRequestDialog from './VacationRequestDialog'
+import AccountSettingsDialog from './AccountSettingsDialog'
 import PaidLeaveAlerts from '../common/PaidLeaveAlerts'
 import PaidLeaveManagement from '../common/PaidLeaveManagement'
 
@@ -197,6 +198,55 @@ export default function ProfileView({ user, isAdmin = false }: ProfileViewProps)
               )}
             </div>
 
+            {/* 勤務詳細情報を統合 */}
+            <Separator className="my-4" />
+            
+            <div className="grid grid-cols-1 gap-4">
+              <h4 className="text-sm font-medium flex items-center gap-2">
+                <Briefcase size={16} />
+                勤務情報
+              </h4>
+              
+              <div>
+                <Label htmlFor="work-start-date">入社日</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Calendar size={16} className="text-muted-foreground" />
+                  <Input
+                    id="work-start-date"
+                    type="date"
+                    value={payrollInfo.workStartDate}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="service-years">勤続年数</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input
+                    id="service-years"
+                    value={`${Math.floor((new Date().getTime() - new Date(payrollInfo.workStartDate).getTime()) / (1000 * 60 * 60 * 24 * 365.25))}年`}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="paid-leave-expiry">有給休暇期限</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <CalendarCheck size={16} className="text-muted-foreground" />
+                  <Input
+                    id="paid-leave-expiry"
+                    value={new Date(payrollInfo.paidLeaveExpiry).toLocaleDateString('ja-JP')}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+              </div>
+            </div>
+
             {isEditing && (
               <div className="flex gap-2 mt-6">
                 <Button onClick={handleSave} className="flex-1">
@@ -268,40 +318,56 @@ export default function ProfileView({ user, isAdmin = false }: ProfileViewProps)
         </CardContent>
       </Card>
 
-      {/* 有給休暇管理パネル */}
-      <PaidLeaveManagement user={user} isAdmin={isAdmin} />
-
-      {/* 有給申請（従来の簡易版） */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CalendarCheck size={20} />
+      {/* 有給休暇管理パネル（統合版） */}
+      <PaidLeaveManagement user={user} isAdmin={isAdmin}>
+        {/* 有給申請ボタンを統合 */}
+        <div className="mt-4 pt-4 border-t">
+          <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+            <CalendarCheck size={16} />
             有給申請
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h4>
           <VacationRequestDialog 
             staffId={user.id} 
             remainingDays={payrollInfo.remainingPaidLeave} 
           />
-        </CardContent>
-      </Card>
+        </div>
+      </PaidLeaveManagement>
 
-      {/* アカウント情報 */}
+      {/* アカウント設定 */}
       <Card>
         <CardHeader>
           <CardTitle>アカウント設定</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Button variant="outline" className="w-full justify-start">
-            パスワード変更
-          </Button>
-          <Button variant="outline" className="w-full justify-start">
-            生体認証設定
-          </Button>
-          <Button variant="outline" className="w-full justify-start">
-            通知設定
-          </Button>
+          <AccountSettingsDialog 
+            type="password"
+            trigger={
+              <Button variant="outline" className="w-full justify-start">
+                <Lock size={16} className="mr-2" />
+                パスワード変更
+              </Button>
+            }
+          />
+          
+          <AccountSettingsDialog 
+            type="biometric"
+            trigger={
+              <Button variant="outline" className="w-full justify-start">
+                <Fingerprint size={16} className="mr-2" />
+                生体認証設定
+              </Button>
+            }
+          />
+          
+          <AccountSettingsDialog 
+            type="notification"
+            trigger={
+              <Button variant="outline" className="w-full justify-start">
+                <Bell size={16} className="mr-2" />
+                通知設定
+              </Button>
+            }
+          />
         </CardContent>
       </Card>
 
