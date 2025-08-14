@@ -5,6 +5,7 @@ import ShiftView from '../shift/ShiftView'
 import TimeCardView from '../timecard/TimeCardView'
 import ProfileView from '../profile/ProfileView'
 import ShiftCreator from '../shift/ShiftCreator'
+import SecurityDashboard from '../security/SecurityDashboard'
 
 interface CreatorDashboardProps {
   user: User
@@ -23,7 +24,12 @@ export default function CreatorDashboard({ user, onLogout }: CreatorDashboardPro
       case 'create':
         return <ShiftCreator user={user} />
       case 'profile':
-        return <ProfileView user={user} isAdmin={false} />
+        return (
+          <div className="space-y-6">
+            <ProfileView user={user} isAdmin={false} />
+            <SecurityDashboard user={user} />
+          </div>
+        )
       default:
         return <TimeCardView user={user} />
     }

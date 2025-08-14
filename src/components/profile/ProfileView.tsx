@@ -342,6 +342,7 @@ export default function ProfileView({ user, isAdmin = false }: ProfileViewProps)
         <CardContent className="space-y-3">
           <AccountSettingsDialog 
             type="password"
+            user={user}
             trigger={
               <Button variant="outline" className="w-full justify-start">
                 <Lock size={16} className="mr-2" />
@@ -352,6 +353,7 @@ export default function ProfileView({ user, isAdmin = false }: ProfileViewProps)
           
           <AccountSettingsDialog 
             type="biometric"
+            user={user}
             trigger={
               <Button variant="outline" className="w-full justify-start">
                 <Fingerprint size={16} className="mr-2" />
@@ -362,6 +364,7 @@ export default function ProfileView({ user, isAdmin = false }: ProfileViewProps)
           
           <AccountSettingsDialog 
             type="notification"
+            user={user}
             trigger={
               <Button variant="outline" className="w-full justify-start">
                 <Bell size={16} className="mr-2" />

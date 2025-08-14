@@ -1,11 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Fingerprint, Eye, EyeOff } from '@phosphor-icons/react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Fingerprint, Eye, EyeOff, Shield, AlertTriangle } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { User } from '../../App'
+import { 
+  sanitizeInput, 
+  loginAttemptManager, 
+  sessionManager, 
+  securityLogger,
+  rateLimiter,
+  hashPassword 
+} from '../../lib/security'
 
 interface LoginPageProps {
   onLogin: (user: User) => void
@@ -16,8 +25,26 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [lockoutTime, setLockoutTime] = useState(0)
+  const [securityWarning, setSecurityWarning] = useState('')
 
-  // デモ用のユーザーデータ
+  // セキュリティ警告の監視
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const remaining = loginAttemptManager.getRemainingLockoutTime(staffId)
+      if (remaining > 0) {
+        setLockoutTime(Math.ceil(remaining / 1000))
+        setSecurityWarning(`アカウントがロックされています。あと${Math.ceil(remaining / 60000)}分後に再試行できます。`)
+      } else {
+        setLockoutTime(0)
+        setSecurityWarning('')
+      }
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [staffId])
+
+  // デモ用のユーザーデータ（実際の本番環境では外部のセキュアなDBから取得）
   const demoUsers: User[] = [
     {
       id: '1',
@@ -56,23 +83,58 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     setIsLoading(true)
 
     try {
-      // デモ用の認証ロジック
-      const user = demoUsers.find(u => u.staffId === staffId)
+      // 入力値のサニタイゼーション
+      const sanitizedStaffId = sanitizeInput(staffId)
+      const sanitizedPassword = sanitizeInput(password)
+
+      // レート制限チェック
+      if (!rateLimiter.checkLimit(`login_${sanitizedStaffId}`, 5, 15 * 60 * 1000)) {
+        toast.error('ログイン試行回数が多すぎます。しばらく待ってから再試行してください。')
+        securityLogger.log('RATE_LIMIT_EXCEEDED', undefined, { staffId: sanitizedStaffId })
+        return
+      }
+
+      // ログイン試行制限チェック
+      if (!loginAttemptManager.canAttemptLogin(sanitizedStaffId)) {
+        const remaining = loginAttemptManager.getRemainingLockoutTime(sanitizedStaffId)
+        toast.error(`アカウントがロックされています。${Math.ceil(remaining / 60000)}分後に再試行してください。`)
+        securityLogger.log('LOGIN_BLOCKED_LOCKOUT', undefined, { staffId: sanitizedStaffId })
+        return
+      }
+
+      // ユーザー検索
+      const user = demoUsers.find(u => u.staffId === sanitizedStaffId)
       
       if (!user) {
-        toast.error('スタッフIDが見つかりません')
+        loginAttemptManager.recordLoginAttempt(sanitizedStaffId, false)
+        securityLogger.log('LOGIN_FAILED_USER_NOT_FOUND', undefined, { staffId: sanitizedStaffId })
+        toast.error('スタッフIDまたはパスワードが間違っています')
         return
       }
 
-      // パスワードチェック（デモでは簡単な検証）
-      if (password !== 'password123') {
-        toast.error('パスワードが間違っています')
+      // パスワードチェック（実際の本番環境ではハッシュ化されたパスワードと比較）
+      const hashedPassword = await hashPassword(sanitizedPassword)
+      const expectedHash = await hashPassword('password123') // デモ用
+      
+      if (hashedPassword !== expectedHash) {
+        loginAttemptManager.recordLoginAttempt(sanitizedStaffId, false)
+        securityLogger.log('LOGIN_FAILED_WRONG_PASSWORD', user.id, { staffId: sanitizedStaffId })
+        toast.error('スタッフIDまたはパスワードが間違っています')
         return
       }
 
+      // ログイン成功
+      loginAttemptManager.recordLoginAttempt(sanitizedStaffId, true)
+      const sessionId = sessionManager.createSession(user)
+      securityLogger.log('LOGIN_SUCCESS', user.id, { staffId: sanitizedStaffId, sessionId })
+      
       toast.success(`${user.name}さん、ログインしました`)
       onLogin(user)
     } catch (error) {
+      securityLogger.log('LOGIN_ERROR', undefined, { 
+        staffId: sanitizeInput(staffId), 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      })
       toast.error('ログインに失敗しました')
     } finally {
       setIsLoading(false)
@@ -80,17 +142,34 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   }
 
   const handleBiometricLogin = () => {
+    securityLogger.log('BIOMETRIC_LOGIN_ATTEMPTED')
     toast.info('生体認証は開発中です')
+  }
+
+  const handleInputChange = (value: string, setter: (value: string) => void) => {
+    // 入力値の基本的なセキュリティチェック
+    const sanitized = sanitizeInput(value)
+    setter(sanitized)
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-accent/5 flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center space-y-2">
-          <CardTitle className="text-2xl font-bold text-primary">勤怠管理システム</CardTitle>
-          <CardDescription>スタッフIDとパスワードでログインしてください</CardDescription>
+          <div className="flex items-center justify-center space-x-2">
+            <Shield className="h-6 w-6 text-primary" />
+            <CardTitle className="text-2xl font-bold text-primary">勤怠管理システム</CardTitle>
+          </div>
+          <CardDescription>セキュアなログインでアクセスしてください</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {securityWarning && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{securityWarning}</AlertDescription>
+            </Alert>
+          )}
+
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="staff-id">スタッフID</Label>
@@ -99,8 +178,11 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                 type="text"
                 placeholder="例: staff001"
                 value={staffId}
-                onChange={(e) => setStaffId(e.target.value)}
+                onChange={(e) => handleInputChange(e.target.value, setStaffId)}
+                disabled={lockoutTime > 0}
                 required
+                maxLength={20}
+                autoComplete="username"
               />
             </div>
             
@@ -112,8 +194,11 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="パスワードを入力"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => handleInputChange(e.target.value, setPassword)}
+                  disabled={lockoutTime > 0}
                   required
+                  maxLength={128}
+                  autoComplete="current-password"
                 />
                 <Button
                   type="button"
@@ -121,6 +206,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                   size="sm"
                   className="absolute right-2 top-1/2 -translate-y-1/2 h-auto p-1"
                   onClick={() => setShowPassword(!showPassword)}
+                  disabled={lockoutTime > 0}
+                  tabIndex={-1}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </Button>
@@ -130,9 +217,9 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={isLoading}
+              disabled={isLoading || lockoutTime > 0}
             >
-              {isLoading ? 'ログイン中...' : 'ログイン'}
+              {isLoading ? 'ログイン中...' : lockoutTime > 0 ? `ロック中 (${lockoutTime}秒)` : 'ログイン'}
             </Button>
           </form>
 
@@ -149,6 +236,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             variant="outline"
             className="w-full"
             onClick={handleBiometricLogin}
+            disabled={lockoutTime > 0}
           >
             <Fingerprint className="mr-2 h-4 w-4" />
             生体認証でログイン
@@ -158,6 +246,10 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             <p>デモ用アカウント:</p>
             <p>スタッフ: staff001 / 作成者: creator001 / 管理者: admin001</p>
             <p>パスワード: password123</p>
+            <p className="text-orange-600 mt-2 flex items-center justify-center space-x-1">
+              <Shield size={12} />
+              <span>セキュリティが強化されています</span>
+            </p>
           </div>
         </CardContent>
       </Card>

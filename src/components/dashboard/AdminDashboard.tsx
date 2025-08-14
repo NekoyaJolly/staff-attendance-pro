@@ -5,6 +5,9 @@ import ShiftView from '../shift/ShiftView'
 import TimeCardView from '../timecard/TimeCardView'
 import ProfileView from '../profile/ProfileView'
 import AdminPanel from '../admin/AdminPanel'
+import SecurityDashboard from '../security/SecurityDashboard'
+import SecurityHealthCheck from '../security/SecurityHealthCheck'
+import SecurityAlert from '../security/SecurityAlert'
 
 interface AdminDashboardProps {
   user: User
@@ -17,13 +20,24 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
   const renderContent = () => {
     switch (activeTab) {
       case 'admin':
-        return <AdminPanel user={user} />
+        return (
+          <div className="space-y-6">
+            <SecurityAlert />
+            <AdminPanel user={user} />
+            <SecurityHealthCheck className="mt-6" />
+          </div>
+        )
       case 'shift':
         return <ShiftView user={user} />
       case 'timecard':
         return <TimeCardView user={user} />
       case 'profile':
-        return <ProfileView user={user} isAdmin={true} />
+        return (
+          <div className="space-y-6">
+            <ProfileView user={user} isAdmin={true} />
+            <SecurityDashboard user={user} />
+          </div>
+        )
       default:
         return <TimeCardView user={user} />
     }

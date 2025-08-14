@@ -4,6 +4,7 @@ import BottomNavigation from '../navigation/BottomNavigation'
 import ShiftView from '../shift/ShiftView'
 import TimeCardView from '../timecard/TimeCardView'
 import ProfileView from '../profile/ProfileView'
+import SecurityDashboard from '../security/SecurityDashboard'
 
 interface StaffDashboardProps {
   user: User
@@ -20,7 +21,12 @@ export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) 
       case 'shift':
         return <ShiftView user={user} />
       case 'profile':
-        return <ProfileView user={user} isAdmin={false} />
+        return (
+          <div className="space-y-6">
+            <ProfileView user={user} isAdmin={false} />
+            <SecurityDashboard user={user} />
+          </div>
+        )
       default:
         return <TimeCardView user={user} />
     }
