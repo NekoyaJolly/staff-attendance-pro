@@ -121,6 +121,7 @@ function DroppableDay({ day, dayShifts, onDrop, onOpenDialog, getUserName, isTod
 function ShiftCreatorContent({ user }: ShiftCreatorProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [shifts, setShifts] = useKV<Shift[]>('shifts', [])
+  const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null)
   const [allUsers] = useKV<User[]>('allUsers', [
     {
       id: '1',
@@ -252,22 +253,41 @@ function ShiftCreatorContent({ user }: ShiftCreatorProps) {
       return
     }
 
+    // 同じ日に同じスタッフのシフトが既に存在するかチェック（編集時は除く）
+    if (!editingShift) {
+      const existingShift = shifts.find(shift => 
+        shift.staffId === newShift.staffId && shift.date === selectedDate
+      )
+      
+      if (existingShift) {
+        const staffName = getUserName(newShift.staffId)
+        toast.error(`${staffName}は${new Date(selectedDate).toLocaleDateString('ja-JP')}に既にシフトが登録されています`)
+        return
+      }
+    }
+
     if (editingShift) {
-      setShifts(current => 
-        current.map(shift => 
+      setShifts(current => {
+        const updated = current.map(shift => 
           shift.id === editingShift.id 
             ? { ...shift, ...newShift, date: selectedDate }
             : shift
         )
-      )
+        console.log('Shift updated:', { id: editingShift.id, ...newShift, date: selectedDate })
+        return updated
+      })
       toast.success('シフトを更新しました')
     } else {
       const newShiftRecord: Shift = {
-        id: `shift-${Date.now()}`,
+        id: `shift-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         date: selectedDate,
         ...newShift
       }
-      setShifts(current => [...current, newShiftRecord])
+      setShifts(current => {
+        const updated = [...current, newShiftRecord]
+        console.log('Shift created:', newShiftRecord)
+        return updated
+      })
       toast.success('シフトを登録しました')
     }
 
@@ -276,7 +296,11 @@ function ShiftCreatorContent({ user }: ShiftCreatorProps) {
   }
 
   const handleDeleteShift = (shiftId: string) => {
-    setShifts(current => current.filter(shift => shift.id !== shiftId))
+    setShifts(current => {
+      const updated = current.filter(shift => shift.id !== shiftId)
+      console.log('Shift deleted:', shiftId)
+      return updated
+    })
     toast.success('シフトを削除しました')
   }
 
@@ -296,23 +320,50 @@ function ShiftCreatorContent({ user }: ShiftCreatorProps) {
 
   // ドラッグ&ドロップでシフト追加
   const handleStaffDrop = (staffId: string, staffName: string, date: string) => {
+    // 同じ日に同じスタッフのシフトが既に存在するかチェック
+    const existingShift = shifts.find(shift => 
+      shift.staffId === staffId && shift.date === date
+    )
+    
+    if (existingShift) {
+      toast.error(`${staffName}は${new Date(date).toLocaleDateString('ja-JP')}に既にシフトが登録されています`)
+      return
+    }
+
     const defaultTemplate = shiftTemplates[0] // デフォルトテンプレートを使用
     const newShiftRecord: Shift = {
-      id: `shift-${Date.now()}`,
+      id: `shift-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       staffId,
       date,
       startTime: defaultTemplate.startTime,
       endTime: defaultTemplate.endTime,
       position: defaultTemplate.position || ''
     }
-    setShifts(current => [...current, newShiftRecord])
+    
+    setShifts(current => {
+      const updated = [...current, newShiftRecord]
+      console.log('Shift added via drag & drop:', newShiftRecord)
+      return updated
+    })
+    
     toast.success(`${staffName}のシフトを${new Date(date).toLocaleDateString('ja-JP')}に追加しました`)
   }
 
   // 全スタッフページに反映
   const updateAllStaffShifts = () => {
-    // 実際の実装では、全スタッフに通知を送信する処理を追加
-    toast.success('シフトを全スタッフページに反映しました')
+    try {
+      // シフトデータをKVストレージに保存（既に自動保存されている）
+      // 実際の実装では、全スタッフに通知を送信する処理を追加
+      const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
+      const monthlyShifts = shifts.filter(shift => shift.date.startsWith(currentMonth))
+      
+      setLastSavedTime(new Date())
+      console.log(`Saved ${monthlyShifts.length} shifts for ${currentMonth}`)
+      toast.success(`${currentMonth}のシフトを全スタッフページに反映しました (${monthlyShifts.length}件)`)
+    } catch (error) {
+      toast.error('シフトの保存に失敗しました')
+      console.error('Shift save error:', error)
+    }
   }
 
   const today = new Date().toISOString().split('T')[0]
@@ -328,10 +379,17 @@ function ShiftCreatorContent({ user }: ShiftCreatorProps) {
                 <Users size={18} className="sm:w-5 sm:h-5" />
                 スタッフ一覧
               </CardTitle>
-              <Button onClick={updateAllStaffShifts} className="flex items-center gap-2 text-xs sm:text-sm" size="sm">
-                <FloppyDisk size={14} className="sm:w-4 sm:h-4" />
-                更新
-              </Button>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                {lastSavedTime && (
+                  <span className="text-xs text-muted-foreground">
+                    最終保存: {lastSavedTime.toLocaleTimeString('ja-JP')}
+                  </span>
+                )}
+                <Button onClick={updateAllStaffShifts} className="flex items-center gap-2 text-xs sm:text-sm" size="sm">
+                  <FloppyDisk size={14} className="sm:w-4 sm:h-4" />
+                  更新
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="pt-0 pb-4">
@@ -365,6 +423,10 @@ function ShiftCreatorContent({ user }: ShiftCreatorProps) {
                 </span>
                 <Button variant="outline" size="sm" onClick={() => navigateMonth('next')}>
                   <ChevronRight size={16} />
+                </Button>
+                <Button onClick={updateAllStaffShifts} className="flex items-center gap-2 text-xs sm:text-sm ml-2" size="sm">
+                  <FloppyDisk size={14} className="sm:w-4 sm:h-4" />
+                  保存
                 </Button>
               </div>
             </div>
