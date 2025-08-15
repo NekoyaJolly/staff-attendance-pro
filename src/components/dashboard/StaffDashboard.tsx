@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useKV } from '@github/spark/hooks'
 import { User } from '../../App'
 import BottomNavigation from '../navigation/BottomNavigation'
 import ShiftView from '../shift/ShiftView'
@@ -13,22 +14,27 @@ interface StaffDashboardProps {
 
 export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) {
   const [activeTab, setActiveTab] = useState('timecard')
+  const [currentUser, setCurrentUser] = useKV<User>('currentUser', user)
+
+  const handleUserUpdate = (updatedUser: User) => {
+    setCurrentUser(updatedUser)
+  }
 
   const renderContent = () => {
     switch (activeTab) {
       case 'timecard':
-        return <TimeCardView user={user} />
+        return <TimeCardView user={currentUser} />
       case 'shift':
-        return <ShiftView user={user} />
+        return <ShiftView user={currentUser} />
       case 'profile':
         return (
           <div className="space-y-6">
-            <ProfileView user={user} isAdmin={false} />
-            <SecurityDashboard user={user} />
+            <ProfileView user={currentUser} isAdmin={false} onUserUpdate={handleUserUpdate} />
+            <SecurityDashboard user={currentUser} />
           </div>
         )
       default:
-        return <TimeCardView user={user} />
+        return <TimeCardView user={currentUser} />
     }
   }
 
@@ -38,7 +44,7 @@ export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) 
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg font-semibold text-foreground">おはようございます</h1>
-            <p className="text-sm text-muted-foreground">{user.name}さん</p>
+            <p className="text-sm text-muted-foreground">{currentUser.name}さん</p>
           </div>
           <div className="text-xs text-muted-foreground">
             {new Date().toLocaleDateString('ja-JP', {

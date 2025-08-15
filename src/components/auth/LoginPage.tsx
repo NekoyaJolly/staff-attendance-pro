@@ -15,6 +15,8 @@ import {
   rateLimiter,
   hashPassword 
 } from '../../lib/security'
+import MFAVerification from './MFAVerification'
+import { MFAService } from '../../services/mfaService'
 
 interface LoginPageProps {
   onLogin: (user: User) => void
@@ -27,6 +29,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [lockoutTime, setLockoutTime] = useState(0)
   const [securityWarning, setSecurityWarning] = useState('')
+  const [mfaUser, setMfaUser] = useState<User | null>(null)
+  const [mfaError, setMfaError] = useState('')
 
   // セキュリティ警告の監視
   useEffect(() => {
@@ -54,7 +58,9 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       staffId: 'staff001',
       birthDate: '1990-01-01',
       address: '東京都渋谷区',
-      phone: '090-1234-5678'
+      phone: '090-1234-5678',
+      mfaEnabled: false,
+      mfaMethod: 'none'
     },
     {
       id: '2',
@@ -64,7 +70,11 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       staffId: 'creator001',
       birthDate: '1988-05-15',
       address: '東京都新宿区',
-      phone: '090-2345-6789'
+      phone: '090-2345-6789',
+      mfaEnabled: true,
+      mfaMethod: 'app',
+      totpSecret: 'JBSWY3DPEHPK3PXP',
+      backupCodes: ['ABC123DE', 'FGH456IJ', 'KLM789NO', 'PQR012ST', 'UVW345XY']
     },
     {
       id: '3',
@@ -74,7 +84,9 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       staffId: 'admin001',
       birthDate: '1985-12-10',
       address: '東京都港区',
-      phone: '090-3456-7890'
+      phone: '090-3456-7890',
+      mfaEnabled: true,
+      mfaMethod: 'sms'
     }
   ]
 
@@ -123,13 +135,31 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         return
       }
 
-      // ログイン成功
+      // ログイン成功 - MFA確認
       loginAttemptManager.recordLoginAttempt(sanitizedStaffId, true)
-      const sessionId = sessionManager.createSession(user)
-      securityLogger.log('LOGIN_SUCCESS', user.id, { staffId: sanitizedStaffId, sessionId })
       
-      toast.success(`${user.name}さん、ログインしました`)
-      onLogin(user)
+      if (user.mfaEnabled) {
+        // MFA認証が必要
+        setMfaUser(user)
+        setMfaError('')
+        securityLogger.log('MFA_REQUIRED', user.id, { staffId: sanitizedStaffId })
+        
+        // SMS認証の場合は自動的にSMSを送信
+        if (user.mfaMethod === 'sms' && user.phone) {
+          try {
+            const smsCode = await MFAService.sendSMSCode(user.phone)
+            console.log(`Auto-sent SMS code to ${user.phone}: ${smsCode}`)
+          } catch (error) {
+            console.warn('Failed to auto-send SMS:', error)
+          }
+        }
+      } else {
+        // MFA不要 - 直接ログイン
+        const sessionId = sessionManager.createSession(user)
+        securityLogger.log('LOGIN_SUCCESS', user.id, { staffId: sanitizedStaffId, sessionId })
+        toast.success(`${user.name}さん、ログインしました`)
+        onLogin(user)
+      }
     } catch (error) {
       securityLogger.log('LOGIN_ERROR', undefined, { 
         staffId: sanitizeInput(staffId), 
@@ -141,15 +171,74 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     }
   }
 
-  const handleBiometricLogin = () => {
-    securityLogger.log('BIOMETRIC_LOGIN_ATTEMPTED')
-    toast.info('生体認証は開発中です')
+  const handleMFASuccess = () => {
+    if (mfaUser) {
+      const sessionId = sessionManager.createSession(mfaUser)
+      securityLogger.log('LOGIN_SUCCESS_WITH_MFA', mfaUser.id, { 
+        staffId: mfaUser.staffId, 
+        sessionId,
+        mfaMethod: mfaUser.mfaMethod
+      })
+      toast.success(`${mfaUser.name}さん、ログインしました`)
+      onLogin(mfaUser)
+    }
+  }
+
+  const handleMFAError = (error: string) => {
+    setMfaError(error)
+    if (mfaUser) {
+      securityLogger.log('MFA_FAILED', mfaUser.id, { 
+        staffId: mfaUser.staffId,
+        error,
+        mfaMethod: mfaUser.mfaMethod
+      })
+    }
+  }
+
+  const handleMFACancel = () => {
+    setMfaUser(null)
+    setMfaError('')
+    if (mfaUser) {
+      securityLogger.log('MFA_CANCELLED', mfaUser.id, { staffId: mfaUser.staffId })
+    }
   }
 
   const handleInputChange = (value: string, setter: (value: string) => void) => {
     // 入力値の基本的なセキュリティチェック
     const sanitized = sanitizeInput(value)
     setter(sanitized)
+  }
+
+  // MFA認証中の場合、MFA認証画面を表示
+  if (mfaUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-accent/5 flex items-center justify-center p-4">
+        <div className="space-y-4">
+          {mfaError && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{mfaError}</AlertDescription>
+            </Alert>
+          )}
+          
+          <MFAVerification 
+            user={mfaUser}
+            onVerificationSuccess={handleMFASuccess}
+            onError={handleMFAError}
+          />
+          
+          <div className="text-center">
+            <Button 
+              variant="outline" 
+              onClick={handleMFACancel}
+              className="w-full max-w-sm"
+            >
+              ログイン画面に戻る
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

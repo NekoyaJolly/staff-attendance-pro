@@ -27,16 +27,19 @@ import {
 import { toast } from 'sonner'
 import { validatePasswordStrength, sanitizeInput, hashPassword, securityLogger } from '../../lib/security'
 import { User } from '../../App'
+import MFASetupDialog from '../auth/MFASetupDialog'
 
 interface AccountSettingsDialogProps {
   trigger: React.ReactNode
-  type: 'password' | 'biometric' | 'notification'
+  type: 'password' | 'biometric' | 'notification' | 'mfa'
   user: User
+  onUserUpdate?: (user: User) => void
 }
 
-export default function AccountSettingsDialog({ trigger, type, user }: AccountSettingsDialogProps) {
+export default function AccountSettingsDialog({ trigger, type, user, onUserUpdate }: AccountSettingsDialogProps) {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [mfaSetupOpen, setMfaSetupOpen] = useState(false)
 
   // パスワード変更用の状態
   const [currentPassword, setCurrentPassword] = useState('')
@@ -396,7 +399,107 @@ export default function AccountSettingsDialog({ trigger, type, user }: AccountSe
     </div>
   )
 
-  const renderNotificationContent = () => (
+  const renderMFAContent = () => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h4 className="text-sm font-medium">多要素認証</h4>
+          <p className="text-sm text-muted-foreground">
+            アカウントのセキュリティを強化します
+          </p>
+        </div>
+        <div className="flex items-center space-x-2">
+          {user.mfaEnabled ? (
+            <div className="flex items-center space-x-1 text-green-600">
+              <CheckCircle className="h-4 w-4" />
+              <span className="text-xs">有効</span>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-1 text-red-600">
+              <XCircle className="h-4 w-4" />
+              <span className="text-xs">無効</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {user.mfaEnabled && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+            <div>
+              <p className="text-sm font-medium">認証方法</p>
+              <p className="text-xs text-muted-foreground">
+                {user.mfaMethod === 'app' ? '認証アプリ' : 'SMS認証'}
+              </p>
+            </div>
+            <Shield className="h-5 w-5 text-primary" />
+          </div>
+
+          {user.mfaMethod === 'app' && user.backupCodes && (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm font-medium text-yellow-800">
+                バックアップコード
+              </p>
+              <p className="text-xs text-yellow-700">
+                残り{user.backupCodes.length}個のコードが利用可能です
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="flex gap-2 pt-4">
+        {user.mfaEnabled ? (
+          <>
+            <Button 
+              onClick={() => {
+                // MFA無効化の処理
+                if (onUserUpdate) {
+                  const updatedUser = {
+                    ...user,
+                    mfaEnabled: false,
+                    mfaMethod: 'none' as const,
+                    totpSecret: undefined,
+                    backupCodes: undefined
+                  }
+                  onUserUpdate(updatedUser)
+                  toast.success('多要素認証を無効にしました')
+                  setOpen(false)
+                }
+              }}
+              variant="destructive"
+              disabled={isLoading}
+              className="flex-1"
+            >
+              無効にする
+            </Button>
+            <Button 
+              onClick={() => setMfaSetupOpen(true)}
+              variant="outline"
+              className="flex-1"
+            >
+              再設定
+            </Button>
+          </>
+        ) : (
+          <Button 
+            onClick={() => setMfaSetupOpen(true)}
+            disabled={isLoading}
+            className="flex-1"
+          >
+            有効にする
+          </Button>
+        )}
+        <Button 
+          variant="outline" 
+          onClick={() => setOpen(false)}
+          className="flex-1"
+        >
+          キャンセル
+        </Button>
+      </div>
+    </div>
+  )
     <div className="space-y-4">
       <div>
         <h4 className="text-sm font-medium mb-3">通知方法</h4>
@@ -485,6 +588,8 @@ export default function AccountSettingsDialog({ trigger, type, user }: AccountSe
         return '生体認証設定'
       case 'notification':
         return '通知設定'
+      case 'mfa':
+        return '多要素認証設定'
       default:
         return 'アカウント設定'
     }
@@ -498,6 +603,8 @@ export default function AccountSettingsDialog({ trigger, type, user }: AccountSe
         return '生体認証によるログイン設定を変更します'
       case 'notification':
         return '通知の受信設定を変更します'
+      case 'mfa':
+        return 'セキュリティを強化するための多要素認証を設定します'
       default:
         return 'アカウント設定を変更します'
     }
@@ -511,6 +618,8 @@ export default function AccountSettingsDialog({ trigger, type, user }: AccountSe
         return <Fingerprint size={20} />
       case 'notification':
         return <Bell size={20} />
+      case 'mfa':
+        return <Shield size={20} />
       default:
         return <Lock size={20} />
     }
@@ -524,28 +633,46 @@ export default function AccountSettingsDialog({ trigger, type, user }: AccountSe
         return renderBiometricContent()
       case 'notification':
         return renderNotificationContent()
+      case 'mfa':
+        return renderMFAContent()
       default:
         return null
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {getDialogIcon()}
-            {getDialogTitle()}
-          </DialogTitle>
-          <DialogDescription>
-            {getDialogDescription()}
-          </DialogDescription>
-        </DialogHeader>
-        {renderContent()}
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          {trigger}
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {getDialogIcon()}
+              {getDialogTitle()}
+            </DialogTitle>
+            <DialogDescription>
+              {getDialogDescription()}
+            </DialogDescription>
+          </DialogHeader>
+          {renderContent()}
+        </DialogContent>
+      </Dialog>
+
+      {/* MFA設定ダイアログ */}
+      <MFASetupDialog
+        open={mfaSetupOpen}
+        onOpenChange={setMfaSetupOpen}
+        user={user}
+        onMFAUpdate={(updatedUser) => {
+          if (onUserUpdate) {
+            onUserUpdate(updatedUser)
+          }
+          setMfaSetupOpen(false)
+          setOpen(false)
+        }}
+      />
+    </>
   )
 }

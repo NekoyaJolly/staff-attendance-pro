@@ -16,6 +16,10 @@ export interface User {
   birthDate?: string
   address?: string
   phone?: string
+  mfaEnabled?: boolean
+  mfaMethod?: 'sms' | 'app' | 'none'
+  backupCodes?: string[]
+  totpSecret?: string
 }
 
 export interface TimeRecord {

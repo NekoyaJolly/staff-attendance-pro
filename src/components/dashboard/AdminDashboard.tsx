@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useKV } from '@github/spark/hooks'
 import { User } from '../../App'
 import BottomNavigation from '../navigation/BottomNavigation'
 import ShiftView from '../shift/ShiftView'
@@ -16,6 +17,11 @@ interface AdminDashboardProps {
 
 export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState('timecard') // デフォルトを勤怠ページに変更
+  const [currentUser, setCurrentUser] = useKV<User>('currentUser', user)
+
+  const handleUserUpdate = (updatedUser: User) => {
+    setCurrentUser(updatedUser)
+  }
 
   const renderContent = () => {
     switch (activeTab) {
@@ -23,23 +29,23 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
         return (
           <div className="space-y-6">
             <SecurityAlert />
-            <AdminPanel user={user} />
+            <AdminPanel user={currentUser} />
             <SecurityHealthCheck className="mt-6" />
           </div>
         )
       case 'shift':
-        return <ShiftView user={user} />
+        return <ShiftView user={currentUser} />
       case 'timecard':
-        return <TimeCardView user={user} />
+        return <TimeCardView user={currentUser} />
       case 'profile':
         return (
           <div className="space-y-6">
-            <ProfileView user={user} isAdmin={true} />
-            <SecurityDashboard user={user} />
+            <ProfileView user={currentUser} isAdmin={true} onUserUpdate={handleUserUpdate} />
+            <SecurityDashboard user={currentUser} />
           </div>
         )
       default:
-        return <TimeCardView user={user} />
+        return <TimeCardView user={currentUser} />
     }
   }
 
@@ -54,7 +60,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                 <h1 className="text-lg sm:text-xl font-bold text-foreground">
                   管理者ダッシュボード
                 </h1>
-                <p className="text-xs sm:text-sm text-muted-foreground">{user.name}さん • ID: {user.staffId}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">{currentUser.name}さん • ID: {currentUser.staffId}</p>
               </div>
             </div>
             <div className="text-left sm:text-right">

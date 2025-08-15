@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { User, Edit, Mail, Phone, MapPin, Calendar, CurrencyYen, Bus, CalendarCheck, Lock, Fingerprint, Bell, Briefcase } from '@phosphor-icons/react'
+import { User, Edit, Mail, Phone, MapPin, Calendar, CurrencyYen, Bus, CalendarCheck, Lock, Fingerprint, Bell, Briefcase, Shield } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { useKV } from '@github/spark/hooks'
 import { User as UserType, PayrollInfo } from '../../App'
@@ -17,9 +17,10 @@ import PaidLeaveManagement from '../common/PaidLeaveManagement'
 interface ProfileViewProps {
   user: UserType
   isAdmin?: boolean
+  onUserUpdate?: (user: UserType) => void
 }
 
-export default function ProfileView({ user, isAdmin = false }: ProfileViewProps) {
+export default function ProfileView({ user, isAdmin = false, onUserUpdate }: ProfileViewProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editedUser, setEditedUser] = useState(user)
   const [payrollInfo, setPayrollInfo] = useKV<PayrollInfo>(`payroll_${user.id}`, {
@@ -343,6 +344,7 @@ export default function ProfileView({ user, isAdmin = false }: ProfileViewProps)
           <AccountSettingsDialog 
             type="password"
             user={user}
+            onUserUpdate={onUserUpdate}
             trigger={
               <Button variant="outline" className="w-full justify-start">
                 <Lock size={16} className="mr-2" />
@@ -354,6 +356,7 @@ export default function ProfileView({ user, isAdmin = false }: ProfileViewProps)
           <AccountSettingsDialog 
             type="biometric"
             user={user}
+            onUserUpdate={onUserUpdate}
             trigger={
               <Button variant="outline" className="w-full justify-start">
                 <Fingerprint size={16} className="mr-2" />
@@ -363,8 +366,26 @@ export default function ProfileView({ user, isAdmin = false }: ProfileViewProps)
           />
           
           <AccountSettingsDialog 
+            type="mfa"
+            user={user}
+            onUserUpdate={onUserUpdate}
+            trigger={
+              <Button variant="outline" className="w-full justify-start">
+                <Shield size={16} className="mr-2" />
+                多要素認証
+                {user.mfaEnabled && (
+                  <Badge variant="secondary" className="ml-auto">
+                    有効
+                  </Badge>
+                )}
+              </Button>
+            }
+          />
+          
+          <AccountSettingsDialog 
             type="notification"
             user={user}
+            onUserUpdate={onUserUpdate}
             trigger={
               <Button variant="outline" className="w-full justify-start">
                 <Bell size={16} className="mr-2" />
