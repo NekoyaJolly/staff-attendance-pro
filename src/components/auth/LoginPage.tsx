@@ -73,8 +73,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       phone: '090-2345-6789',
       mfaEnabled: true,
       mfaMethod: 'app',
-      totpSecret: 'JBSWY3DPEHPK3PXP',
-      backupCodes: ['ABC123DE', 'FGH456IJ', 'KLM789NO', 'PQR012ST', 'UVW345XY']
+      totpSecret: 'JBSWY3DPEHPK3PXP'
     },
     {
       id: '3',

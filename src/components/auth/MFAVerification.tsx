@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useKV } from '@github/spark/hooks'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -7,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Shield, Smartphone, MessageSquare, Key } from '@phosphor-icons/react'
 import { MFAService } from '@/services/mfaService'
+import { BackupCodeService, BackupCodeSet } from '@/services/backupCodeService'
 import { User } from '@/App'
 
 interface MFAVerificationProps {
@@ -22,6 +24,7 @@ export default function MFAVerification({ user, onVerificationSuccess, onError }
   const [backupCode, setBackupCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [smsLoading, setSmsLoading] = useState(false)
+  const [backupCodes, setBackupCodes] = useKV<BackupCodeSet | null>(`backup_codes_${user.id}`, null)
 
   const handleTOTPVerification = async () => {
     if (!verificationCode || !user.totpSecret) {
@@ -94,22 +97,33 @@ export default function MFAVerification({ user, onVerificationSuccess, onError }
   }
 
   const handleBackupCodeVerification = async () => {
-    if (!backupCode || !user.backupCodes) {
+    if (!backupCode) {
       onError('バックアップコードを入力してください')
+      return
+    }
+
+    if (!backupCodes) {
+      onError('バックアップコードが設定されていません')
       return
     }
 
     setLoading(true)
     
     try {
-      const result = MFAService.verifyBackupCode(user.backupCodes, backupCode)
+      const result = BackupCodeService.validateAndUseBackupCode(backupCodes, backupCode)
       
       if (result.valid) {
-        // バックアップコードを更新（使用済みコードを削除）
-        // 実際の実装では、ユーザー情報を更新するAPIコールが必要
+        // バックアップコードを更新（使用済みコードをマーク）
+        const updatedCodeSet = {
+          ...backupCodes,
+          usedCodes: result.usedCodes,
+          lastUsed: new Date().toISOString()
+        }
+        setBackupCodes(updatedCodeSet)
+        
         onVerificationSuccess()
       } else {
-        onError('バックアップコードが正しくありません')
+        onError(result.message || 'バックアップコードが正しくありません')
       }
     } catch (err) {
       onError('認証に失敗しました')
@@ -223,9 +237,9 @@ export default function MFAVerification({ user, onVerificationSuccess, onError }
                 type="text"
                 value={backupCode}
                 onChange={(e) => setBackupCode(e.target.value.toUpperCase())}
-                placeholder="XXXXXXXX"
-                maxLength={8}
-                className="text-center text-lg"
+                placeholder="XXXX-XXXX"
+                maxLength={9}
+                className="text-center text-lg font-mono"
               />
             </div>
             <Button 
@@ -239,6 +253,11 @@ export default function MFAVerification({ user, onVerificationSuccess, onError }
               <Key className="h-4 w-4" />
               <AlertDescription>
                 バックアップコードは一度のみ使用可能です。使用後は無効になります。
+                {backupCodes && (
+                  <div className="mt-2 text-sm">
+                    残り{BackupCodeService.getRemainingCodeCount(backupCodes)}個のバックアップコードが利用可能です。
+                  </div>
+                )}
               </AlertDescription>
             </Alert>
           </TabsContent>

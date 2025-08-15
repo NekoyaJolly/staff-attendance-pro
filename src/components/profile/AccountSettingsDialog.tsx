@@ -22,16 +22,18 @@ import {
   EyeSlash,
   CheckCircle,
   XCircle,
-  Shield
+  Shield,
+  Key
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { validatePasswordStrength, sanitizeInput, hashPassword, securityLogger } from '../../lib/security'
 import { User } from '../../App'
 import MFASetupDialog from '../auth/MFASetupDialog'
+import BackupCodeManager from '../security/BackupCodeManager'
 
 interface AccountSettingsDialogProps {
   trigger: React.ReactNode
-  type: 'password' | 'biometric' | 'notification' | 'mfa'
+  type: 'password' | 'biometric' | 'notification' | 'mfa' | 'backup'
   user: User
   onUserUpdate?: (user: User) => void
 }
@@ -590,6 +592,8 @@ export default function AccountSettingsDialog({ trigger, type, user, onUserUpdat
         return '通知設定'
       case 'mfa':
         return '多要素認証設定'
+      case 'backup':
+        return 'バックアップコード管理'
       default:
         return 'アカウント設定'
     }
@@ -605,6 +609,8 @@ export default function AccountSettingsDialog({ trigger, type, user, onUserUpdat
         return '通知の受信設定を変更します'
       case 'mfa':
         return 'セキュリティを強化するための多要素認証を設定します'
+      case 'backup':
+        return '緊急時のアクセス手段となるバックアップコードを管理します'
       default:
         return 'アカウント設定を変更します'
     }
@@ -620,10 +626,24 @@ export default function AccountSettingsDialog({ trigger, type, user, onUserUpdat
         return <Bell size={20} />
       case 'mfa':
         return <Shield size={20} />
+      case 'backup':
+        return <Key size={20} />
       default:
         return <Lock size={20} />
     }
   }
+
+  const renderBackupContent = () => (
+    <div className="space-y-4">
+      <BackupCodeManager 
+        user={user}
+        onCodesUpdated={(codes) => {
+          // バックアップコードが更新された時の処理
+          console.log('Backup codes updated:', codes)
+        }}
+      />
+    </div>
+  )
 
   const renderContent = () => {
     switch (type) {
@@ -635,6 +655,8 @@ export default function AccountSettingsDialog({ trigger, type, user, onUserUpdat
         return renderNotificationContent()
       case 'mfa':
         return renderMFAContent()
+      case 'backup':
+        return renderBackupContent()
       default:
         return null
     }
@@ -646,7 +668,7 @@ export default function AccountSettingsDialog({ trigger, type, user, onUserUpdat
         <DialogTrigger asChild>
           {trigger}
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className={`${type === 'backup' ? 'sm:max-w-[800px] max-h-[90vh] overflow-y-auto' : 'sm:max-w-[425px]'}`}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {getDialogIcon()}

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { User, Edit, Mail, Phone, MapPin, Calendar, CurrencyYen, Bus, CalendarCheck, Lock, Fingerprint, Bell, Briefcase, Shield } from '@phosphor-icons/react'
+import { User, Edit, Mail, Phone, MapPin, Calendar, CurrencyYen, Bus, CalendarCheck, Lock, Fingerprint, Bell, Key, Shield } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { useKV } from '@github/spark/hooks'
 import { User as UserType, PayrollInfo } from '../../App'
@@ -378,6 +378,18 @@ export default function ProfileView({ user, isAdmin = false, onUserUpdate }: Pro
                     有効
                   </Badge>
                 )}
+              </Button>
+            }
+          />
+
+          <AccountSettingsDialog 
+            type="backup"
+            user={user}
+            onUserUpdate={onUserUpdate}
+            trigger={
+              <Button variant="outline" className="w-full justify-start">
+                <Key size={16} className="mr-2" />
+                バックアップコード
               </Button>
             }
           />
